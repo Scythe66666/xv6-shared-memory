@@ -8,10 +8,6 @@ struct cpu {
   int ncli;                    // Depth of pushcli nesting.
   int intena;                  // Were interrupts enabled before pushcli?
   struct proc *proc;           // The process running on this cpu or null
-  uint num_shm;                //number of shared memories that 
-  uint shm_id[256];               //shm_id entries
-  char* vaddres[256];             //virtual address start corresponding to the particular shm_id 
-  uint shm_sz;                 //first unoccupied virtual memory for shared memory
 };
 
 extern struct cpu cpus[NCPU];
@@ -53,6 +49,10 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  uint num_shm;                //number of shared memories that 
+  uint shm_id[256];               //shm_id entries
+  char* vaddres[256];             //virtual address start corresponding to the particular shm_id 
+  uint shm_sz;                 //first unoccupied virtual memory for shared memory
 };
 
 // Process memory is laid out contiguously, low addresses first:

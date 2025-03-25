@@ -410,18 +410,30 @@ uint shm_get(uint key, uint size, uint shmflag)
 {
     struct shm_ds_temp* = &shm_ds[key - 1];
     
-    if(shm_ds[key - 1] != 0) 
+    if(key != IPC_PRIVATE && shm_ds[key - 1] != 0) 
         return -1;
-   
+    
+    /**
+        * key = iterate through struct proc to get 
+        * unallocated key
+    **/
+
     (*shm_ds_temp).key = key;
     (*shm_ds_temp).size = size;
-    (*shm_ds_temp).pid = myproc();
+    (*shm_ds_temp).pid = ((proc *)myproc().pid;
+    (*shm_ds_temp).lpid = -1;
+    (*shm_ds_temp).nattach = 0;
     
     int i = 0;
     size = PGROUNDUP(size); 
     
     for(i = 0; i <= size; i += PGSIZE)
     {
-         
+        char * mem = kalloc();
+        memset(mem, 0, PGSIZE);
+        (*shmds_temp).alloclist[(*shmds_temp).alloclist_index] = mem;
+        (*shmds_temp).alloclist_index++;
     }
+    
+    return key;
 }
