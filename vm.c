@@ -392,3 +392,36 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 //PAGEBREAK!
 // Blank page.
 
+struct shm_ds {
+  uint key;
+  uint size;
+  uint pid;
+  uint lpid;
+  uint nattach;    //number of attached segments
+  char* alloclist[100];   //allocated memmory physical address
+  int alloclist_index;
+}
+
+#define max_num_shm 10;
+struct shm_ds[max_num_shm];
+
+
+uint shm_get(uint key, uint size, uint shmflag)
+{
+    struct shm_ds_temp* = &shm_ds[key - 1];
+    
+    if(shm_ds[key - 1] != 0) 
+        return -1;
+   
+    (*shm_ds_temp).key = key;
+    (*shm_ds_temp).size = size;
+    (*shm_ds_temp).pid = myproc();
+    
+    int i = 0;
+    size = PGROUNDUP(size); 
+    
+    for(i = 0; i <= size; i += PGSIZE)
+    {
+         
+    }
+}
