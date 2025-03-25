@@ -8,6 +8,11 @@ struct cpu {
   int ncli;                    // Depth of pushcli nesting.
   int intena;                  // Were interrupts enabled before pushcli?
   struct proc *proc;           // The process running on this cpu or null
+  uint num_shm;                //number of shared memories that 
+  uint shm_id[];               //shm_id entries
+  char* vaddres[];             //virtual address start corresponding to the particular shm_id 
+  uint shm_sz;                 //first unoccupied virtual memory for shared memory
+
 };
 
 extern struct cpu cpus[NCPU];
