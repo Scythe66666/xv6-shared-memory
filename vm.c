@@ -444,11 +444,12 @@ void shm_ds_init(uint index, uint size, uint shmflag)
 
 
 //defining rough #defines
-//TODO: specify the proper values of the flags
-#define IPC_PRIVATE 1
-#define IPC_CREAT 1
-#define IPC_EXCL 1
+#define IPC_PRIVATE 0     //since otherwise keys actually start from 1???
 #define SHMBASE 1
+
+// defining flag values for shmflg for shmget.
+#define IPC_CREAT 512     // 10th least significant bit
+#define IPC_EXCL 1024      // 11th least significant bit
 
 /**
  * create new entry means will initailize the entire shms DS.
@@ -478,7 +479,7 @@ uint shmget(uint key, uint size, uint shmflag)
         if(i == MAX_SHM)
         {
             /**
-             * set err no. 
+             * set err no. for ENOSPC
              * */ 
             return 0;
         }
@@ -493,7 +494,7 @@ uint shmget(uint key, uint size, uint shmflag)
         if(!(shmflag & IPC_CREAT) && (shmflag & IPC_EXCL))
         {
             /**
-             * only one flag
+             * only one flag: situation not defined
              */
         }
 
@@ -505,7 +506,7 @@ uint shmget(uint key, uint size, uint shmflag)
         else
         {
             /**
-             * set err no
+             * set err no. for EEXISTS
              * */
             return 0;
         }
@@ -516,11 +517,17 @@ uint shmget(uint key, uint size, uint shmflag)
         if(shms[key - 1].size < size)
         {
             /**
-             * set err no. 
+             * set err no. EINVAL
              * */
             return 0;
         }
         return key;
+    }
+    else{
+      /**
+      * set err no. ENOENT
+      * */
+      return -1;
     }
 
     return 0;
