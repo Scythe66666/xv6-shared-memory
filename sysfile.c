@@ -442,3 +442,15 @@ sys_pipe(void)
   fd[1] = fd1;
   return 0;
 }
+
+int
+sys_shmget(void)
+{
+  uint key, size, shmflag; 
+
+  if(argint(0, (int*)&key) < 0 || argint(1, (int*)&size) < 0 || argint(2, (int*)&shmflag)){
+    return -1;
+  }
+
+  return shmget(key, size, shmflag);
+}

@@ -224,7 +224,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   char *mem;
   uint a;
 
-  if(newsz >= KERNBASE)
+  if(newsz >= HEAPLIMIT)
     return 0;
   if(newsz < oldsz)
     return oldsz;
@@ -397,32 +397,29 @@ struct shm_ds {
   uint size;
   uint pid;
   uint lpid;
-  uint nattach;    //number of attached segments
+  uint nget;    //number of segements which called get
   char* alloclist[100];   //allocated memmory physical address
   int alloclist_index;
-}
+  uint flags;
+};
 
-#define max_num_shm 10;
-struct shm_ds[max_num_shm];
+#define MAX_SHM 10
+//remember index into the arrays is key - 1
+struct shm_ds shms[MAX_SHM];
+uint shm_allocated;
 
-
-uint shm_get(uint key, uint size, uint shmflag)
+/**
+ * initializes the values of the shm_ds
+ */
+void shm_ds_init(uint index, uint size, uint shmflag)
 {
-    struct shm_ds_temp* = &shm_ds[key - 1];
-    
-    if(key != IPC_PRIVATE && shm_ds[key - 1] != 0) 
-        return -1;
-    
-    /**
-        * key = iterate through struct proc to get 
-        * unallocated key
-    **/
-
-    (*shm_ds_temp).key = key;
-    (*shm_ds_temp).size = size;
-    (*shm_ds_temp).pid = ((proc *)myproc().pid;
-    (*shm_ds_temp).lpid = -1;
-    (*shm_ds_temp).nattach = 0;
+    shms[index].key = index + 1;
+    shms[index].size = size;
+    shms[index].pid = myproc()->pid;
+    shms[index].nget = 1;
+    shms[index].lpid = -1;
+    shms[index].flags = shmflag;
+    shms[index].alloclist_index = 0;
     
     int i = 0;
     size = PGROUNDUP(size); 
@@ -431,9 +428,219 @@ uint shm_get(uint key, uint size, uint shmflag)
     {
         char * mem = kalloc();
         memset(mem, 0, PGSIZE);
-        (*shmds_temp).alloclist[(*shmds_temp).alloclist_index] = mem;
-        (*shmds_temp).alloclist_index++;
+        shms[index].alloclist[shms[index].alloclist_index] = mem;
+        shms[index].alloclist_index++;
+    }
+
+    struct proc* currproc = myproc();
+    struct shm_proc* shm_proc = &shm_arr[index];
+    shm_proc->sz = size;
+    shm_proc->id = index + 1;
+    shm_proc->va = NULL;
+    //TODO: complete the permissions code
+    shm_proc->permissions = shmflag;
+
+}
+
+
+//defining rough #defines
+//TODO: specify the proper values of the flags
+#define IPC_PRIVATE 1
+#define IPC_CREAT 1
+#define IPC_EXCL 1
+#define SHMBASE 1
+
+/**
+ * create new entry means will initailize the entire shms DS.
+ * function will create new entry if IPC_PRIVATE is set
+ *
+ * the function will modify :
+ * 1]the entry in the global in shm array. 
+ * 2]the entry in struct proc 
+ *
+ * TODO: check for max number of entries created and max shm size is there
+ * TODO: per process bound for the memory that they create
+ * if IPC_CREAT and IPC_EXCL are set create new entry 
+ * we also set the values in shm_arr[] arrays particular ds in the given 
+ *
+ *
+ * index
+ */
+uint shmget(uint key, uint size, uint shmflag)
+{
+    if(key == IPC_PRIVATE)
+    {
+        int i = 0;
+        for(i = 0; i < MAX_SHM; i++)
+            if(shms[i].key == 0)
+                break;
+
+        if(i == MAX_SHM)
+        {
+            /**
+             * set err no. 
+             * */ 
+            return 0;
+        }
+
+        shm_ds_init(i, size, shmflag); 
+        return i + 1;
     }
     
-    return key;
+    if((shmflag & IPC_CREAT) || (shmflag & IPC_EXCL))
+    {
+
+        if(!(shmflag & IPC_CREAT) && (shmflag & IPC_EXCL))
+        {
+            /**
+             * only one flag
+             */
+        }
+
+        if(shms[key - 1].key == 0)
+        {
+            shm_ds_init(key - 1, size, shmflag);
+            return key;
+        }
+        else
+        {
+            /**
+             * set err no
+             * */
+            return 0;
+        }
+    }
+
+    if(shms[key - 1].key != 0)
+    {
+        if(shms[key - 1].size < size)
+        {
+            /**
+             * set err no. 
+             * */
+            return 0;
+        }
+        return key;
+    }
+
+    return 0;
 }
+
+
+/**
+* the function will attach the shared memory segment 
+* pointed to by the particuar shmid to the virtual 
+* address specified in addr field if no address is 
+* specified it attaches at a suitable location
+*
+* the function will modify the followind DS:
+* 1]the shm_proc in struct proc 
+* 2]
+*
+* param: shmaddr- must be page aligned address or NULL
+* param: 
+* */
+void* shmat(uint shmid, void* shmaddr, uint shmflag)
+{
+    struct proc* curproc = myproc();
+    struct shm_proc* shm_proc = &(curproc->shm_arr[shmid - 1]);
+    
+    if(shm_proc->id != shmid)
+        return 0;
+    
+    //TODO: think about the remap flag
+    if(shm_proc->va != NULL)
+        return 0;
+
+    if(shmaddr == NULL)
+        shmaddr = SHMBASE + curproc->shmsz;
+     
+    if(shmaddr < HEAPLIMIT || shmaddr >= KERNBASE)
+        return 0;
+    
+    if(PGROUNDUP(shmaddr) != shmaddr)
+    {
+        /**
+         * put err no.  of EINVAL
+         */
+        return 0;
+    }
+
+    int size = shm_proc->sz;
+    char* va = NULL; 
+    int remap = 0;///TODO replace this with the value parsed from the flag  
+
+    //TODO: find out about the remap functionality
+    //TODO: perm
+    if((va = shmmap(curproc->pgdir, shmaddr, shm_proc->alloclist, shm_proc->alloclist_index, size, perm, remap)) == 0)
+    {
+        /**
+        * error printing and deallocate code
+        **/
+        
+        return 0;
+    }
+
+    return 1;
+}
+/**
+ * the function will map physical pages from the
+ * alloclist(list of phy pages) and on to VM
+ * starting from the address va
+ * if remap is set to 1 will allow remaping of
+ * exisitng PTE's(linux flag) 
+ * */
+int shmmap(pde_t *pgdir, void* va, char* alloclist[], int max_phy_pages, int size, int perm, int remap)
+{
+    for(int i = 0; i < size; i += PGSIZE)
+    {
+        int alloclist_index = i / PGSIZE;
+        
+        if(alloc_index < max_phy_pages)
+        {
+            cprintf("memory limit of the shared memory exceeded");
+            /*TODO: write the code to deallocate the
+             * allocated memory in case of error
+             * TODO: write the code for errno
+             */
+            return 0;
+        }
+    
+        if(shmmappages(pgdir, va, PGSIZE, alloclist[i / PGSIZE], perm, remap) < 0)
+        {
+            cprintf("shmmap out of memory (2)\n");
+            /*TODO: write the code to deallocate the
+             * allocated memory in case of error
+             * TODO: write the code for errno
+             */
+            kfree(mem);
+            return 0;
+        }
+
+        return 1;
+    }
+}
+
+//same as mappages just remap allowed for the SHM_REMAP flag
+static int
+shmmappages(pde_t *pgdir, void *va, uint size, uint pa, int perm, int remap)
+{
+  char *a, *last;
+  pte_t *pte;
+
+  a = (char*)PGROUNDDOWN((uint)va);
+  last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
+  for(;;){
+    if((pte = walkpgdir(pgdir, a, 1)) == 0)
+      return -1;
+    if(!remap && (*pte & PTE_P))
+      panic("remap");
+    *pte = pa | perm | PTE_P;
+    if(a == last)
+      break;
+    a += PGSIZE;
+    pa += PGSIZE;
+  }
+  return 0;
+}
+

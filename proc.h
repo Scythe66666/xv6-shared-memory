@@ -32,6 +32,13 @@ struct context {
   uint eip;
 };
 
+struct shm_proc{
+  int id;
+  void* va;
+  uint permissions;
+  int sz;
+};	 
+
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
@@ -50,8 +57,8 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   uint num_shm;                //number of shared memories that 
-  uint shm_id[256];               //shm_id entries
-  char* vaddres[256];             //virtual address start corresponding to the particular shm_id 
+    //remember index in the shm_arr is key - 1
+  struct shm_proc shm_arr[256];        //will store info about the acquired shm DS from the global DS of shm's 
   uint shm_sz;                 //first unoccupied virtual memory for shared memory
 };
 
