@@ -35,7 +35,7 @@ struct context {
 struct shm_proc{
   int id;
   void* va;
-  uint permissions;
+  int permissions;
   int sz;
 };	 
 

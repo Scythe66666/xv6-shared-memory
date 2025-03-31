@@ -436,9 +436,10 @@ void shm_ds_init(uint index, uint size, uint shmflag)
     struct shm_proc* shm_proc = &currproc->shm_arr[index];
     shm_proc->sz = size;
     shm_proc->id = index + 1;
+
     shm_proc->va = 0;
-    //TODO: complete the permissions code
-    shm_proc->permissions = shmflag;
+    //TODO: complete the permissions code ::: Complete
+    shm_proc->permissions = 511 | shmflag;  //least significatn 9 bits for permissions
 
 }
 
@@ -476,10 +477,7 @@ uint shmget(uint key, uint size, uint shmflag)
 
         if(i == MAX_SHM)
         {
-            /**
-             * set err no. 
-             * */ 
-            return 0;
+            return ENOSPC;
         }
 
         shm_ds_init(i, size, shmflag); 
@@ -492,7 +490,7 @@ uint shmget(uint key, uint size, uint shmflag)
         if(!(shmflag & IPC_CREAT) && (shmflag & IPC_EXCL))
         {
             /**
-             * only one flag
+             * only one flag: situation not defined
              */
         }
 
@@ -503,10 +501,7 @@ uint shmget(uint key, uint size, uint shmflag)
         }
         else
         {
-            /**
-             * set err no
-             * */
-            return 0;
+            return EEXIST;
         }
     }
 
@@ -514,12 +509,22 @@ uint shmget(uint key, uint size, uint shmflag)
     {
         if(shms[key - 1].size < size)
         {
-            /**
-             * set err no. 
-             * */
-            return 0;
+            return EINVAL_SIZE;
         }
+
+        //to check permissions
+        struct proc* currproc = myproc();
+        struct shm_proc* shm_proc = &shm_arr[index];
+        if(shm_proc->permissions != (511 | shmflag)){
+          return EACCES;
+        }
+
+
+
         return key;
+    }
+    else{
+      return ENOENT;
     }
 
     return 0;
