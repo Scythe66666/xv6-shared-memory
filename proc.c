@@ -199,6 +199,12 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
+  //copy the params for shm 
+  np->shm_sz = curproc->shm_sz;
+  np->num_shm = curproc->num_shm;
+  
+  for(int i = 0; i < 256; i++)
+    np->shm_arr[i] = curproc->shm_arr[i];
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;

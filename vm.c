@@ -398,7 +398,7 @@ struct shm_ds {
   uint pid;
   uint lpid;
   uint nget;    //number of segements which called get
-  char* alloclist[100];   //allocated memmory physical address
+  char* alloclist[100];   //allocated memmory virtual address(w.r.t to kernel) can be converted to physical using V2P
   int alloclist_index;
   uint flags;
 };
@@ -426,17 +426,17 @@ void shm_ds_init(uint index, uint size, uint shmflag)
     
     for(i = 0; i <= size; i += PGSIZE)
     {
-        char * mem = kalloc();
+        char* mem = kalloc();
         memset(mem, 0, PGSIZE);
         shms[index].alloclist[shms[index].alloclist_index] = mem;
         shms[index].alloclist_index++;
     }
 
     struct proc* currproc = myproc();
-    struct shm_proc* shm_proc = &shm_arr[index];
+    struct shm_proc* shm_proc = &currproc->shm_arr[index];
     shm_proc->sz = size;
     shm_proc->id = index + 1;
-    shm_proc->va = NULL;
+    shm_proc->va = 0;
     //TODO: complete the permissions code
     shm_proc->permissions = shmflag;
 
@@ -445,10 +445,9 @@ void shm_ds_init(uint index, uint size, uint shmflag)
 
 //defining rough #defines
 //TODO: specify the proper values of the flags
-#define IPC_PRIVATE 1
-#define IPC_CREAT 1
-#define IPC_EXCL 1
-#define SHMBASE 1
+int shmmap(pde_t *pgdir, uint va, uint alloclist[], int max_phy_pages, int size, int perm, int remap);
+static int
+shmmappages(pde_t *pgdir, uint va, uint size, uint pa, int perm, int remap);
 
 /**
  * create new entry means will initailize the entire shms DS.
@@ -537,10 +536,12 @@ uint shmget(uint key, uint size, uint shmflag)
 * 1]the shm_proc in struct proc 
 * 2]
 *
+* TODO: change the return type of this to void*
+*
 * param: shmaddr- must be page aligned address or NULL
 * param: 
 * */
-void* shmat(uint shmid, void* shmaddr, uint shmflag)
+uint shmat(uint shmid, uint shmaddr, uint shmflag)
 {
     struct proc* curproc = myproc();
     struct shm_proc* shm_proc = &(curproc->shm_arr[shmid - 1]);
@@ -549,11 +550,11 @@ void* shmat(uint shmid, void* shmaddr, uint shmflag)
         return 0;
     
     //TODO: think about the remap flag
-    if(shm_proc->va != NULL)
+    if(shm_proc->va != 0)
         return 0;
 
-    if(shmaddr == NULL)
-        shmaddr = SHMBASE + curproc->shmsz;
+    if(shmaddr == 0)
+        shmaddr = SHMBASE + curproc->shm_sz;
      
     if(shmaddr < HEAPLIMIT || shmaddr >= KERNBASE)
         return 0;
@@ -567,12 +568,12 @@ void* shmat(uint shmid, void* shmaddr, uint shmflag)
     }
 
     int size = shm_proc->sz;
-    char* va = NULL; 
     int remap = 0;///TODO replace this with the value parsed from the flag  
-
+    int perm = PTE_W | PTE_U;
+    uint va;
     //TODO: find out about the remap functionality
     //TODO: perm
-    if((va = shmmap(curproc->pgdir, shmaddr, shm_proc->alloclist, shm_proc->alloclist_index, size, perm, remap)) == 0)
+    if((va = shmmap(curproc->pgdir, shmaddr, shms[shmid - 1].alloclist, shms[shmid - 1].alloclist_index, size, perm, remap)) == 0)
     {
         /**
         * error printing and deallocate code
@@ -580,9 +581,38 @@ void* shmat(uint shmid, void* shmaddr, uint shmflag)
         
         return 0;
     }
+    shm_proc->va = (void*)va; 
 
     return 1;
 }
+
+/**
+ * shmdt will remove the virtual mappings for the 
+ * process from the pgdir the 
+ * */
+int shmdt(void* addr)
+{
+    if(addr == 0)
+        return 0;
+
+    struct proc* currproc = myproc();
+    struct shm_proc* shm_arr = currproc->shm_arr; 
+
+    for(int i = 0; i < 256; i++)
+    {
+        struct shm_proc* shm_proc = &shm_arr[i];
+
+        if(shm_proc->id == i + 1 && shm_proc->va == addr)
+        {    
+            deallocuvm(currproc->pgdir, addr + shm_proc->sz, addr); 
+            shm_proc->va = 0;
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 /**
  * the function will map physical pages from the
  * alloclist(list of phy pages) and on to VM
@@ -590,13 +620,13 @@ void* shmat(uint shmid, void* shmaddr, uint shmflag)
  * if remap is set to 1 will allow remaping of
  * exisitng PTE's(linux flag) 
  * */
-int shmmap(pde_t *pgdir, void* va, char* alloclist[], int max_phy_pages, int size, int perm, int remap)
+int shmmap(pde_t *pgdir, uint va, uint alloclist[], int max_phy_pages, int size, int perm, int remap)
 {
     for(int i = 0; i < size; i += PGSIZE)
     {
         int alloclist_index = i / PGSIZE;
         
-        if(alloc_index < max_phy_pages)
+        if(alloclist_index < max_phy_pages)
         {
             cprintf("memory limit of the shared memory exceeded");
             /*TODO: write the code to deallocate the
@@ -606,24 +636,22 @@ int shmmap(pde_t *pgdir, void* va, char* alloclist[], int max_phy_pages, int siz
             return 0;
         }
     
-        if(shmmappages(pgdir, va, PGSIZE, alloclist[i / PGSIZE], perm, remap) < 0)
+        if(shmmappages(pgdir, va, PGSIZE, alloclist[alloclist_index], perm, remap) < 0)
         {
             cprintf("shmmap out of memory (2)\n");
             /*TODO: write the code to deallocate the
              * allocated memory in case of error
              * TODO: write the code for errno
              */
-            kfree(mem);
             return 0;
         }
-
-        return 1;
     }
+    return 1;
 }
 
 //same as mappages just remap allowed for the SHM_REMAP flag
 static int
-shmmappages(pde_t *pgdir, void *va, uint size, uint pa, int perm, int remap)
+shmmappages(pde_t *pgdir, uint va, uint size, uint pa, int perm, int remap)
 {
   char *a, *last;
   pte_t *pte;
@@ -643,4 +671,3 @@ shmmappages(pde_t *pgdir, void *va, uint size, uint pa, int perm, int remap)
   }
   return 0;
 }
-

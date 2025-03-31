@@ -56,7 +56,7 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  uint num_shm;                //number of shared memories that 
+  uint num_shm;                //number of shared memories that i have get
     //remember index in the shm_arr is key - 1
   struct shm_proc shm_arr[256];        //will store info about the acquired shm DS from the global DS of shm's 
   uint shm_sz;                 //first unoccupied virtual memory for shared memory
