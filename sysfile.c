@@ -454,3 +454,20 @@ sys_shmget(void)
 
   return shmget(key, size, shmflag);
 }
+
+//TODO: see about the difference in return type
+int
+sys_shmat(void)
+{
+    uint shmid, shmaddr, shmflag;
+    if(argint(0, (int*)&shmid) < 0 || argint(1, (int*)&shmaddr) < 0 || argint(2, (int*)&shmflag)){
+        return -1;
+    }
+
+    return shmat(shmid, shmaddr, shmflag);
+}
+
+int sys_shmdt(void)
+{
+    return 0;
+}
