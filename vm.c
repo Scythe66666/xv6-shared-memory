@@ -401,6 +401,7 @@ struct shm_ds {
   char* alloclist[100];   //allocated memmory physical address
   int alloclist_index;
   uint flags;
+  int permissions;    // access permissions
 };
 
 #define MAX_SHM 10
@@ -420,6 +421,7 @@ void shm_ds_init(uint index, uint size, uint shmflag)
     shms[index].lpid = -1;
     shms[index].flags = shmflag;
     shms[index].alloclist_index = 0;
+    shms[index].permissions = 511 | shmflag;
     
     int i = 0;
     size = PGROUNDUP(size); 
@@ -431,13 +433,6 @@ void shm_ds_init(uint index, uint size, uint shmflag)
         shms[index].alloclist[shms[index].alloclist_index] = mem;
         shms[index].alloclist_index++;
     }
-
-    struct proc* currproc = myproc();
-    struct shm_proc* shm_proc = &shm_arr[index];
-    shm_proc->sz = size;
-    shm_proc->id = index + 1;
-    shm_proc->va = NULL;
-    shm_proc->permissions = 511 | shmflag;  //least significatn 9 bits for permissions
 
 }
 
@@ -505,9 +500,7 @@ uint shmget(uint key, uint size, uint shmflag)
         }
 
         //to check permissions
-        struct proc* currproc = myproc();
-        struct shm_proc* shm_proc = &shm_arr[index];
-        if(shm_proc->permissions != (511 | shmflag)){
+        if(shms[key - 1].permissions != (511 | shmflag)){
           return EACCES;
         }
 
@@ -540,13 +533,40 @@ void* shmat(uint shmid, void* shmaddr, uint shmflag)
 {
     struct proc* curproc = myproc();
     struct shm_proc* shm_proc = &(curproc->shm_arr[shmid - 1]);
+
+    //shmid points to a removed identifier
+    if(shms[shmid - 1].key == 0){
+      return EIDRM;
+    }
+
+    // if calling shmat multiple times.
+    if(shm_proc->id == shmid){
+      /*
+      * custom error.
+      */
+      return -1;
+    }
+
+    // checking permission
+    if((SHM_RDONLY & shmflag)){   // for read only
+      if((shms[shmid - 1].permissions & SHM_RD) != SHM_RD){
+        return EACCES;
+      }
+    }
+    else{ //else should have both read and write
+      if((shms[shmid - 1].permissions & SHM_RD_WR) != SHM_RD_WR){
+        return EACCES;
+      }
+    }
+     
+
+    // new entry in shm_proc
+    shm_proc->sz = shms[shmid - 1].size;
+    shm_proc->id = shmid;
+    shm_proc->va = NULL;
+    // need to rethinnk about this since it has to be going into PTE as well!
+    shm_proc->permissions = 511 & shmflag;  //least significatn 9 bits for permissions
     
-    if(shm_proc->id != shmid)
-        return 0;
-    
-    //TODO: think about the remap flag
-    if(shm_proc->va != NULL)
-        return 0;
 
     if(shmaddr == NULL)
         shmaddr = SHMBASE + curproc->shmsz;
@@ -559,22 +579,22 @@ void* shmat(uint shmid, void* shmaddr, uint shmflag)
         /**
          * put err no.  of EINVAL
          */
-        return 0;
+        return EINVAL;
     }
 
     int size = shm_proc->sz;
     char* va = NULL; 
-    int remap = 0;///TODO replace this with the value parsed from the flag  
 
-    //TODO: find out about the remap functionality
-    //TODO: perm
-    if((va = shmmap(curproc->pgdir, shmaddr, shm_proc->alloclist, shm_proc->alloclist_index, size, perm, remap)) == 0)
+    // either 4 or 0
+    int remap = (shmflag & SHM_REMAP);
+
+    if((va = shmmap(curproc->pgdir, shmaddr, shm_proc->alloclist, shm_proc->alloclist_index, size, shm_proc[shmid - 1].permissions, remap)) == 0)
     {
         /**
         * error printing and deallocate code
         **/
         
-        return 0;
+        return ENOMEM;
     }
 
     return 1;
@@ -610,7 +630,7 @@ int shmmap(pde_t *pgdir, void* va, char* alloclist[], int max_phy_pages, int siz
              * TODO: write the code for errno
              */
             kfree(mem);
-            return 0;
+            return ENOMEM;
         }
 
         return 1;
