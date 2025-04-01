@@ -344,6 +344,33 @@ bad:
   return 0;
 }
 
+// Given a parent process's page table, create a copy
+// of it for a child.
+pde_t*
+copyshm(pde_t *oldpgdir, pde_t *newpgdir, uint shm_sz)
+{
+  pte_t *pte;
+  uint pa, i, flags;
+  char *mem;
+
+  for(i = HEAPLIMIT; i < shm_sz; i += PGSIZE){
+    if((pte = walkpgdir(oldpgdir, (void *) i, 0)) == 0)
+      panic("copyshm: pte should exist");
+    if(!(*pte & PTE_P))
+      panic("copyshm: page not present");
+    pa = PTE_ADDR(*pte);
+    flags = PTE_FLAGS(*pte);
+    if(mappages(newpgdir, (void*)i, PGSIZE, pa, flags) < 0) {
+      goto bad;
+    }
+  }
+  return newpgdir;
+
+bad:
+  freevm(newpgdir);
+  return 0;
+}
+
 //PAGEBREAK!
 // Map user virtual address to kernel address.
 char*
@@ -413,14 +440,17 @@ uint shm_allocated;
  */
 void shm_ds_init(uint index, uint size, uint shmflag)
 {
-    shms[index].key = index + 1;
-    shms[index].size = size;
-    shms[index].pid = myproc()->pid;
-    shms[index].nget = 1;
-    shms[index].lpid = -1;
-    shms[index].flags = shmflag;
-    shms[index].alloclist_index = 0;
-    
+    //think about the locks over here
+    if(shms[index].key == index + 1)
+    {
+        shms[index].key = index + 1;
+        shms[index].size = size;
+        shms[index].pid = myproc()->pid;
+        shms[index].nget = 1;
+        shms[index].lpid = -1;
+        shms[index].flags = shmflag;
+        shms[index].alloclist_index = 0;
+    } 
     int i = 0;
     size = PGROUNDUP(size); 
     
@@ -518,9 +548,10 @@ uint shmget(uint key, uint size, uint shmflag)
         if(shm_proc->permissions != (511 | shmflag)){
           return EACCES;
         }
-
-
-
+        
+        shms[key - 1].nget++;
+        shm_ds_init(key - 1, size, shmflag);
+        
         return key;
     }
     else{
@@ -578,7 +609,7 @@ uint shmat(uint shmid, uint shmaddr, uint shmflag)
     uint va;
     //TODO: find out about the remap functionality
     //TODO: perm
-    if((va = shmmap(curproc->pgdir, shmaddr, shms[shmid - 1].alloclist, shms[shmid - 1].alloclist_index, size, perm, remap)) == 0)
+    if((va = shmmap(curproc->pgdir, shmaddr, shms[shmid - 1].alloclist, shms[shmid - 1].alloclist_index + 1, size, perm, remap)) == 0)
     {
         /**
         * error printing and deallocate code
@@ -631,7 +662,7 @@ int shmmap(pde_t *pgdir, uint va, uint alloclist[], int max_phy_pages, int size,
     {
         int alloclist_index = i / PGSIZE;
         
-        if(alloclist_index < max_phy_pages)
+        if(alloclist_index >= max_phy_pages)
         {
             cprintf("memory limit of the shared memory exceeded");
             /*TODO: write the code to deallocate the

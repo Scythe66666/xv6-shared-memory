@@ -174,6 +174,8 @@ growproc(int n)
   return 0;
 }
 
+c
+
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.
@@ -196,6 +198,14 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
+    
+  if(copyshm(curproc->pgdir, np->pgdir, curproc->shm_sz) == 0){
+    kfree(np->kstack);
+    np->kstack = 0;
+    np->state = UNUSED;
+    return -1;
+  }
+
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
@@ -203,9 +213,13 @@ fork(void)
   np->shm_sz = curproc->shm_sz;
   np->num_shm = curproc->num_shm;
   
-  for(int i = 0; i < 256; i++)
+  for(int i = 0; i < 256; i++){
+    
     np->shm_arr[i] = curproc->shm_arr[i];
-
+    
+    if(np->shm_arr[i].key == i + 1)
+        shms[i].nget++;
+  }
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 
