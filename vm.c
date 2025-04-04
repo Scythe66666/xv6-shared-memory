@@ -6,9 +6,12 @@
 #include "mmu.h"
 #include "proc.h"
 #include "elf.h"
+#include "shm.h"
+#include "shm_funcs.h"
 
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
+
 
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
@@ -351,7 +354,6 @@ copyshm(pde_t *oldpgdir, pde_t *newpgdir, uint shm_sz)
 {
   pte_t *pte;
   uint pa, i, flags;
-  char *mem;
 
   for(i = HEAPLIMIT; i < shm_sz; i += PGSIZE){
     if((pte = walkpgdir(oldpgdir, (void *) i, 0)) == 0)
@@ -419,17 +421,6 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 //PAGEBREAK!
 // Blank page.
 
-struct shm_ds {
-  uint key;
-  uint size;
-  uint pid;
-  uint lpid;
-  uint nget;    //number of segements which called get
-  char* alloclist[100];   //allocated memmory virtual address(w.r.t to kernel) can be converted to physical using V2P
-  int alloclist_index;
-  uint flags;
-  int permissions;    // access permissions
-};
 
 #define MAX_SHM 10
 //remember index into the arrays is key - 1
@@ -438,6 +429,9 @@ uint shm_allocated;
 
 /**
  * initializes the values of the shm_ds
+ * shm_ds: the global array if the shm is created
+ * else only the shm_proc is set which is in the
+ * array in the proc data structure.
  */
 void shm_ds_init(uint index, uint size, uint shmflag)
 {
@@ -454,22 +448,37 @@ void shm_ds_init(uint index, uint size, uint shmflag)
         shms[index].permissions = 511 | shmflag;
     } 
     int i = 0;
-    size = PGROUNDUP(size); 
     
     for(i = 0; i <= size; i += PGSIZE)
     {
         char* mem = kalloc();
         memset(mem, 0, PGSIZE);
-        shms[index].alloclist[shms[index].alloclist_index] = mem;
+        shms[index].alloclist[shms[index].alloclist_index] = V2P(mem);
         shms[index].alloclist_index++;
     }
+    
+    struct proc* curproc = myproc();
+    curproc->num_shm++;
+    struct shm_proc* shm_proc = &(curproc->shm_arr[index]);
+    
+    if(shm_proc->id != 0)
+    {
+        cprintf("kernel panic\n\n");
+        return;
+    }
+
+    // new entry in shm_proc
+    shm_proc->sz = shms[index].size;
+    shm_proc->id = index + 1;
+    shm_proc->va = 0;
+    // need to rethinnk about this since it has to be going into PTE as well!
+    shm_proc->permissions = 511 & shmflag;  //least significatn 9 bits for permissions
 
 }
 
 
 //defining rough #defines
 //TODO: specify the proper values of the flags
-int shmmap(pde_t *pgdir, uint va, uint alloclist[], int max_phy_pages, int size, int perm, int remap);
 static int
 shmmappages(pde_t *pgdir, uint va, uint size, uint pa, int perm, int remap);
 
@@ -486,10 +495,10 @@ shmmappages(pde_t *pgdir, uint va, uint size, uint pa, int perm, int remap);
  * if IPC_CREAT and IPC_EXCL are set create new entry 
  * we also set the values in shm_arr[] arrays particular ds in the given 
  *
- *
+ * returns the key value of the given shm segment 
  * index
  */
-uint shmget(uint key, uint size, uint shmflag)
+int shmget(uint key, uint size, uint shmflag)
 {
     if(key == IPC_PRIVATE)
     {
@@ -528,7 +537,7 @@ uint shmget(uint key, uint size, uint shmflag)
         }
     }
 
-    if(shms[key - 1].key != 0)
+    if(shms[key - 1].key == key)
     {
         if(shms[key - 1].size < size)
         {
@@ -561,14 +570,16 @@ uint shmget(uint key, uint size, uint shmflag)
 *
 * the function will modify the followind DS:
 * 1]the shm_proc in struct proc 
-* 2]
 *
 * TODO: change the return type of this to void*
-*
-* param: shmaddr- must be page aligned address or NULL
+* 
+* return the virtual address to which the memory is 
+* connected or returns negative value in case of 
+* errors
+* param: shmaddr must be page aligned address or NULL
 * param: 
 * */
-uint shmat(uint shmid, uint shmaddr, uint shmflag)
+int shmat(uint shmid, uint shmaddr, uint shmflag)
 {
     struct proc* curproc = myproc();
     struct shm_proc* shm_proc = &(curproc->shm_arr[shmid - 1]);
@@ -597,21 +608,12 @@ uint shmat(uint shmid, uint shmaddr, uint shmflag)
         return EACCES;
       }
     }
-     
-
-    // new entry in shm_proc
-    shm_proc->sz = shms[shmid - 1].size;
-    shm_proc->id = shmid;
-    shm_proc->va = NULL;
-    // need to rethinnk about this since it has to be going into PTE as well!
-    shm_proc->permissions = 511 & shmflag;  //least significatn 9 bits for permissions
-    
 
     if(shmaddr == 0)
         shmaddr = SHMBASE + curproc->shm_sz;
      
     if(shmaddr < HEAPLIMIT || shmaddr >= KERNBASE)
-        return 0;
+        return -1;
     
     if(PGROUNDUP(shmaddr) != shmaddr)
     {
@@ -622,12 +624,12 @@ uint shmat(uint shmid, uint shmaddr, uint shmflag)
     }
 
     int size = shm_proc->sz;
-    char* va = NULL; 
 
     // either 4 or 0
     int remap = (shmflag & SHM_REMAP);
+    int perm = PTE_W | PTE_U | PTE_P; 
 
-    if((va = shmmap(curproc->pgdir, shmaddr, shm_proc->alloclist, shm_proc->alloclist_index, size, shm_proc[shmid - 1].permissions, remap)) == 0)
+    if(shmmap(curproc->pgdir, shmaddr, shms[shmid - 1].alloclist, shms[shmid - 1].alloclist_index, size, perm, remap) < 0)
     {
         /**
         * error printing and deallocate code
@@ -635,7 +637,7 @@ uint shmat(uint shmid, uint shmaddr, uint shmflag)
         
         return ENOMEM;
     }
-    shm_proc->va = (void*)va; 
+    shm_proc->va = (void*)shmaddr; 
 
     return 1;
 }
@@ -658,7 +660,7 @@ int shmdt(void* addr)
 
         if(shm_proc->id == i + 1 && shm_proc->va == addr)
         {    
-            deallocuvm(currproc->pgdir, addr + shm_proc->sz, addr); 
+            deallocuvm(currproc->pgdir, (uint)(addr + shm_proc->sz), (uint)addr); 
             shm_proc->va = 0;
             return 1;
         }
@@ -697,7 +699,6 @@ int shmmap(pde_t *pgdir, uint va, uint alloclist[], int max_phy_pages, int size,
              * allocated memory in case of error
              * TODO: write the code for errno
              */
-            kfree(mem);
             return ENOMEM;
         }
     }
@@ -726,3 +727,4 @@ shmmappages(pde_t *pgdir, uint va, uint size, uint pa, int perm, int remap)
   }
   return 0;
 }
+

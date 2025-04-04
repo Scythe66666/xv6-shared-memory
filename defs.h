@@ -181,12 +181,11 @@ void            freevm(pde_t*);
 void            inituvm(pde_t*, char*, uint);
 int             loaduvm(pde_t*, char*, struct inode*, uint, uint);
 pde_t*          copyuvm(pde_t*, uint);
+pde_t*          copyshm(pde_t *oldpgdir, pde_t *newpgdir, uint shm_sz);
 void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
-uint            shmget(uint key, uint size, uint shmflag);
-uint            shmat(uint shmid, uint shmaddr, uint shmflag);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

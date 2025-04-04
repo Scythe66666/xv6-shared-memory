@@ -6,6 +6,9 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "shm.h"
+#include "shm_funcs.h"
+
 
 struct {
   struct spinlock lock;
@@ -17,6 +20,7 @@ static struct proc *initproc;
 int nextpid = 1;
 extern void forkret(void);
 extern void trapret(void);
+extern struct shm_ds* shms;
 
 static void wakeup1(void *chan);
 
@@ -174,7 +178,6 @@ growproc(int n)
   return 0;
 }
 
-c
 
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
@@ -217,7 +220,7 @@ fork(void)
     
     np->shm_arr[i] = curproc->shm_arr[i];
     
-    if(np->shm_arr[i].key == i + 1)
+    if(np->shm_arr[i].id == i + 1)
         shms[i].nget++;
   }
   // Clear %eax so that fork returns 0 in the child.
@@ -278,6 +281,34 @@ exit(void)
       p->parent = initproc;
       if(p->state == ZOMBIE)
         wakeup1(initproc);
+    }
+  }
+
+  //to free up data structures related to shm
+  for(int i = 0; i < 256; i++)
+  {
+    struct shm_proc* shm_proc = &curproc->shm_arr[i];
+    if(shm_proc->id == 0)
+      continue;
+        
+    if(shm_proc->va != 0)
+      shmdt(shm_proc->va);
+
+    shms[i].nget--;
+    if(shms[i].nget == 0)
+    {
+      //TODO here call the function to wrap up 
+      //the shm
+      
+      shms[i].key = 0;
+      shms[i].size = 0;
+      shms[i].pid = 0;
+      shms[i].nget = 0;
+      shms[i].lpid = 0;
+      shms[i].flags = 0;
+      shms[i].alloclist_index = 0;
+      shms[i].permissions = 0;
+
     }
   }
 

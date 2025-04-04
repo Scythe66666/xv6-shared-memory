@@ -34,3 +34,17 @@
 #define ENOSPC     -9
 #define EIDRM       -10
 #define EINVAL      -11
+
+struct shm_ds {
+  uint key;
+  uint size;
+  uint pid;
+  uint lpid;
+  uint nget;    //number of segements which called get
+  uint alloclist[1000];   //physical page addresses
+  int alloclist_index; //points to first unallocated index
+  uint flags;
+  int permissions;    // access permissions
+};
+
+
