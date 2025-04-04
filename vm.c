@@ -436,7 +436,7 @@ uint shm_allocated;
 void shm_ds_init(uint index, uint size, uint shmflag)
 {
     //think about the locks over here
-    if(shms[index].key == index + 1)
+    if(shms[index].key == 0)
     {
         shms[index].key = index + 1;
         shms[index].size = size;
