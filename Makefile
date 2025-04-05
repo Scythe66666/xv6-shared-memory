@@ -185,6 +185,7 @@ UPROGS=\
 	_tryshm2\
 	_tryshm3\
 	_tryshm5\
+	_tryshm6\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

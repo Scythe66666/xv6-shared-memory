@@ -548,6 +548,8 @@ int shmget(uint key, uint size, uint shmflag)
             /**
              * only one flag: situation not defined
              */
+             cprintf("IPC_CREAT flag needed!\n");
+             return -1;
         }
 
         if(shms[key - 1].key == 0)
