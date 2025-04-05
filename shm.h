@@ -7,20 +7,14 @@
 #define IPC_EXCL 1024      // 11th least significant bit
 
 // flags for shmat
-/*
-*       shmflg structure for shmat
-*       bit 0 : SHM_EXEC
-*       bit 1 : SHM_RDONLY
-*       bit 2 : SHM_REMAP
-*       bit 3 : SHM_RND
-*/
-#define SHM_EXEC 1
-#define SHM_RDONLY 2 
-#define SHM_REMAP 4
-#define SHM_RND 8
 
-#define SHM_RD 292      // decimal equivalent of 100100100 (readonly for all three).
-#define SHM_RD_WR 438   // decimal equivalent of 110110110 (read and write both for all three).
+#define SHM_EXEC 6	//read and write both: 2nd and 3rd both bits set
+#define SHM_RDONLY 2 	// only read bit set i.e. 3rd bit
+#define SHM_REMAP 2048	//12th bit
+#define SHM_RND 4096	//13th bit
+
+// #define SHM_RD 292      // decimal equivalent of 100100100 (readonly for all three).
+// #define SHM_RD_WR 438   // decimal equivalent of 110110110 (read and write both for all three).
 
 
 // defining error numbers
@@ -44,7 +38,12 @@ struct shm_ds {
   uint alloclist[1000];   //physical page addresses
   int alloclist_index; //points to first unallocated index
   uint flags;
-  int permissions;    // access permissions
+  uint ipc_perm shm_perm;    // access permissions
+};
+
+struct ipc_perm{
+	uint key;
+	uint mode;
 };
 
 

@@ -468,7 +468,8 @@ void shm_ds_init(uint index, uint size, uint shmflag)
         shms[index].lpid = -1;
         shms[index].flags = shmflag;
         shms[index].alloclist_index = 0;
-        shms[index].permissions = 511 | shmflag;
+	// rethink since permission are in octal!
+        shms[index].shm_perm.mode = shmflag & 7;
     } 
     int i = 0;
     
@@ -568,7 +569,7 @@ int shmget(uint key, uint size, uint shmflag)
         }
 
         //to check permissions
-        if(shms[key - 1].permissions != (511 | shmflag)){
+        if(shms[key - 1].shm_perm.mode != (shmflag & 7)){
           return EACCES;
         }
         
@@ -622,12 +623,12 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
 
     // checking permission
     if((SHM_RDONLY & shmflag)){   // for read only
-      if((shms[shmid - 1].permissions & SHM_RD) != SHM_RD){
+      if(!(shms[shmid - 1].shm_perm.mode & SHM_RDONLY)){
         return EACCES;
       }
     }
     else{ //else should have both read and write
-      if((shms[shmid - 1].permissions & SHM_RD_WR) != SHM_RD_WR){
+      if((shms[shmid - 1].shm_perm.mode & SHM_EXEC) != SHM_EXEC){
         return EACCES;
       }
     }
@@ -636,7 +637,7 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
         shmaddr = HEAPLIMIT + curproc->shm_sz;
      
     if(shmaddr < HEAPLIMIT || shmaddr >= KERNBASE)
-        return -1;
+        return EINVAL;
     
     if(PGROUNDUP(shmaddr) != shmaddr)
     {
