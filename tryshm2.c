@@ -17,6 +17,8 @@ int main()
     } 
     for(int i = 0; i < 10000 / 4; i++)
         printf(0, "ptr[%d]= %d", i, ptr[i]);
-
+   
+	printf(0, "Test passed! \n");
+	exit();
 
 }

@@ -29,6 +29,12 @@
 #define EIDRM       -10
 #define EINVAL      -11
 
+struct ipc_perm{
+	uint key;
+	uint mode;
+};
+
+
 struct shm_ds {
   uint key;
   uint size;
@@ -38,12 +44,8 @@ struct shm_ds {
   uint alloclist[1000];   //physical page addresses
   int alloclist_index; //points to first unallocated index
   uint flags;
-  uint ipc_perm shm_perm;    // access permissions
+  struct ipc_perm shm_perm;    // access permissions
 };
 
-struct ipc_perm{
-	uint key;
-	uint mode;
-};
 
 

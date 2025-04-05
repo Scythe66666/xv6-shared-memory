@@ -445,7 +445,7 @@ void shm_unget(int index)
       shms[index].lpid = 0;
       shms[index].flags = 0;
       shms[index].alloclist_index = 0;
-      shms[index].permissions = 0;
+      shms[index].shm_perm.mode = 0;
 
     }
 }
@@ -675,14 +675,14 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
 int shmdt(void* addr)
 {
 
-    if(PGROUNDUP(shmaddr) != shmaddr){
+    if(PGROUNDUP((uint)addr) != (uint)addr){
       return EINVAL;
     }
 
     if(addr == 0)
         return 0;
 
-    struct proc* curproc = myproc();
+    struct proc* currproc = myproc();
     struct shm_proc* shm_arr = currproc->shm_arr; 
 
     for(int i = 0; i < 256; i++)
