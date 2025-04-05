@@ -9,7 +9,7 @@
 // flags for shmat
 
 #define SHM_EXEC 6	//read and write both: 2nd and 3rd both bits set
-#define SHM_RDONLY 2 	// only read bit set i.e. 3rd bit
+#define SHM_RDONLY 4 	// only read bit set i.e. 3rd bit
 #define SHM_REMAP 2048	//12th bit
 #define SHM_RND 4096	//13th bit
 

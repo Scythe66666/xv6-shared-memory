@@ -624,15 +624,19 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
     /*}*/
 
     // checking permission
-    if((SHM_RDONLY & shmflag)){   // for read only
+    if((shmflag & 7) == SHM_RDONLY){   // for read only
       if(!(shms[shmid - 1].shm_perm.mode & SHM_RDONLY)){
         return EACCES;
       }
     }
-    else{ //else should have both read and write
+    else{ //else should have both read and write even if its 0!
       if((shms[shmid - 1].shm_perm.mode & SHM_EXEC) != SHM_EXEC){
         return EACCES;
       }
+    }
+
+    if(shmflag & SHM_REMAP){
+      if(shmaddr == 0) return EINVAL;
     }
 
     if(shmaddr == 0)
@@ -648,6 +652,7 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
          */
         return EINVAL;
     }
+
 
     int size = shm_proc->sz;
 

@@ -8,11 +8,14 @@ void print_shm_error(int errno);
 
 int main(){
     int shm_id;
+    shm_id = shmget(IPC_PRIVATE, 10000, 0664);  // note only read permission is given
 
-    printf(0, "\nSimulating error: calling shmget using only IPC_EXCL...\n");
-    shm_id = shmget(1, 10000, IPC_EXCL | 0666);
-    if(shm_id < 0){
-        print_shm_error(shm_id);
+    int ptr;
+
+    printf(0, "\nSimulating error: shmid points to a removed identifier...\n");
+    ptr = shmat(2, 0, SHM_RDONLY);
+    if(ptr < 0){
+        print_shm_error(ptr);
         printf(0, "*****Error check passed.*****\n");
     }
     else{
@@ -20,23 +23,10 @@ int main(){
         exit();
     }
 
-
-    printf(0, "\nSimulating: Creating segment using only IPC_CREAT flag ...\n");
-    shm_id = shmget(1, 10000, IPC_CREAT | 0666);
-    if(shm_id < 0){
-        print_shm_error(shm_id);
-        exit();
-    }
-    else{
-        printf(0, "Segment created!\n"); 
-    }
-
-
-
-    printf(0, "\nSimulating error: Trying to create a segment which already exists...\n");
-    shm_id = shmget(1, 10000, IPC_CREAT | IPC_EXCL | 0666);
-    if(shm_id < 0){
-        print_shm_error(shm_id);
+    printf(0, "\nSimulating error: Segment has only read but we want more (SHM_EXEC or 0)...\n");
+    ptr = shmat(1, 0, SHM_EXEC);
+    if(ptr < 0){
+        print_shm_error(ptr);
         printf(0, "*****Error check passed.*****\n");
     }
     else{
@@ -44,10 +34,10 @@ int main(){
         exit();
     }
 
-    printf(0, "\nSimulating error: Trying to get segment of size greater than existing one...\n");
-    shm_id = shmget(1, 12000, 0666);
-    if(shm_id < 0){
-        print_shm_error(shm_id);
+    printf(0, "\nSimulating error: address < HEAPLIMIT or > KERNBASE...\n");
+    ptr = shmat(1, 0x50000000, SHM_RDONLY);
+    if(ptr < 0){
+        print_shm_error(ptr);
         printf(0, "*****Error check passed.*****\n");
     }
     else{
@@ -55,11 +45,10 @@ int main(){
         exit();
     }
 
-
-    printf(0, "\nSimulating error: Permission not matching...\n");
-    shm_id = shmget(1, 10000, 0660);
-    if(shm_id < 0){
-        print_shm_error(shm_id);
+    printf(0, "\nSimulating error: address not aligned to page boundary...\n");
+    ptr = shmat(1, 0x80000005, SHM_RDONLY);
+    if(ptr < 0){
+        print_shm_error(ptr);
         printf(0, "*****Error check passed.*****\n");
     }
     else{
@@ -67,17 +56,17 @@ int main(){
         exit();
     }
 
-
-    printf(0, "\nSimulating error: Segment not existing and IPC_CREAT not mentioned...\n");
-    shm_id = shmget(5, 10000, 0660);
-    if(shm_id < 0){
-        print_shm_error(shm_id);
+    printf(0, "\nSimulating error: SHM_REMAP flag but addr is 0(NULL)...\n");
+    ptr = shmat(1, 0, SHM_REMAP | SHM_RDONLY);
+    if(ptr < 0){
+        print_shm_error(ptr);
         printf(0, "*****Error check passed.*****\n");
     }
     else{
         printf(0, "*****Error check FAILED!!*****\n");
         exit();
     }
+
 
     printf(0, "\n*****ALL TEST CASES PASSED!******");
     exit();
