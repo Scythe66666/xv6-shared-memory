@@ -355,7 +355,7 @@ copyshm(pde_t *oldpgdir, pde_t *newpgdir, uint shm_sz)
   pte_t *pte;
   uint pa, i, flags;
 
-  for(i = HEAPLIMIT; i < shm_sz; i += PGSIZE){
+  for(i = HEAPLIMIT; i <= shm_sz; i += PGSIZE){
     if((pte = walkpgdir(oldpgdir, (void *) i, 0)) == 0)
       panic("copyshm: pte should exist");
     if(!(*pte & PTE_P))
@@ -366,6 +366,7 @@ copyshm(pde_t *oldpgdir, pde_t *newpgdir, uint shm_sz)
       goto bad;
     }
   }
+  cprintf("last address mapped by copyshm is %d", i - PGSIZE);
   return newpgdir;
 
 bad:
@@ -426,6 +427,28 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 //remember index into the arrays is key - 1
 struct shm_ds shms[MAX_SHM];
 uint shm_allocated;
+
+//the function will reduce the nget of shms[index]
+//and if reaches 0 it will initialie it to 0
+void shm_unget(int index)
+{
+    shms[index].nget--;
+    if(shms[index].nget == 0)
+    {
+      //TODO here call the function to wrap up 
+      //the shm
+      
+      shms[index].key = 0;
+      shms[index].size = 0;
+      shms[index].pid = 0;
+      shms[index].nget = 0;
+      shms[index].lpid = 0;
+      shms[index].flags = 0;
+      shms[index].alloclist_index = 0;
+      shms[index].permissions = 0;
+
+    }
+}
 
 /**
  * initializes the values of the shm_ds
@@ -590,12 +613,12 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
     }
 
     // if calling shmat multiple times.
-    if(shm_proc->id == shmid){
-      /*
-      * custom error.
-      */
-      return -1;
-    }
+    /*if(shm_proc->id == shmid){*/
+    //*  /**/
+    //*  * custom error.*/
+    //*  */*/
+    //*  return -1;*/
+    /*}*/
 
     // checking permission
     if((SHM_RDONLY & shmflag)){   // for read only
@@ -610,7 +633,7 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
     }
 
     if(shmaddr == 0)
-        shmaddr = SHMBASE + curproc->shm_sz;
+        shmaddr = HEAPLIMIT + curproc->shm_sz;
      
     if(shmaddr < HEAPLIMIT || shmaddr >= KERNBASE)
         return -1;
@@ -638,8 +661,10 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
         return ENOMEM;
     }
     shm_proc->va = (void*)shmaddr; 
+    int last_addr = shmaddr + size - 1;  
+    curproc->shm_sz = last_addr;
 
-    return 1;
+    return (int)shm_proc->va;
 }
 
 /**
@@ -678,10 +703,10 @@ int shmdt(void* addr)
  * */
 int shmmap(pde_t *pgdir, uint va, uint alloclist[], int max_phy_pages, int size, int perm, int remap)
 {
-    for(int i = 0; i < size; i += PGSIZE)
+    for(int i = 0; i < size; i += PGSIZE, va += PGSIZE)
     {
         int alloclist_index = i / PGSIZE;
-        
+
         if(alloclist_index >= max_phy_pages)
         {
             cprintf("memory limit of the shared memory exceeded");

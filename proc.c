@@ -290,26 +290,11 @@ exit(void)
     struct shm_proc* shm_proc = &curproc->shm_arr[i];
     if(shm_proc->id == 0)
       continue;
-        
+      
     if(shm_proc->va != 0)
       shmdt(shm_proc->va);
-
-    shms[i].nget--;
-    if(shms[i].nget == 0)
-    {
-      //TODO here call the function to wrap up 
-      //the shm
-      
-      shms[i].key = 0;
-      shms[i].size = 0;
-      shms[i].pid = 0;
-      shms[i].nget = 0;
-      shms[i].lpid = 0;
-      shms[i].flags = 0;
-      shms[i].alloclist_index = 0;
-      shms[i].permissions = 0;
-
-    }
+    
+    shm_unget(i);
   }
 
   // Jump into the scheduler, never to return.
