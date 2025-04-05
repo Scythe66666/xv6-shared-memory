@@ -15,8 +15,8 @@ int main()
         printf(0, " ok at i = %d value of ptr= %d\n", i, ptr2);
         *(ptr + i) = i;
     } 
-    for(int i = 0; i < 10000 / 4; i++)
-        printf(0, "ptr[%d]= %d", i, ptr[i]);
-
-
+    /*for(int i = 0; i < 10000 / 4; i++)*/
+    /*    printf(0, "ptr[%d]= %d\n", i, ptr[i]);*/
+    
+    exit();
 }

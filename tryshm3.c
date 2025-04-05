@@ -22,4 +22,5 @@ int main()
          *(ptr + i) = i;
         } 
     }
+    exit();
 }
