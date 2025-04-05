@@ -674,10 +674,15 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
  * */
 int shmdt(void* addr)
 {
+
+    if(PGROUNDUP(shmaddr) != shmaddr){
+      return EINVAL;
+    }
+
     if(addr == 0)
         return 0;
 
-    struct proc* currproc = myproc();
+    struct proc* curproc = myproc();
     struct shm_proc* shm_arr = currproc->shm_arr; 
 
     for(int i = 0; i < 256; i++)
@@ -692,7 +697,7 @@ int shmdt(void* addr)
         }
     }
 
-    return 0;
+    return EINVAL;
 }
 
 /**
