@@ -115,6 +115,7 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+  p->shm_sz = HEAPLIMIT;
 
   return p;
 }
@@ -201,8 +202,8 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
-    
-  if(copyshm(curproc->pgdir, np->pgdir, curproc->shm_sz) == 0){
+  //copyshm will copy the memory from HEAPLIMIT to shm_sz - 1 (last used shm address)
+  if(copyshm(curproc->pgdir, np->pgdir, curproc->shm_sz - 1) == 0){
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;

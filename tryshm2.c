@@ -22,6 +22,5 @@ int main()
     }
    
 	printf(0, "Test passed! \n");
-	exit();
-
+    exit();
 }

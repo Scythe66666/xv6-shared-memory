@@ -366,7 +366,6 @@ copyshm(pde_t *oldpgdir, pde_t *newpgdir, uint shm_sz)
       goto bad;
     }
   }
-  cprintf("last address mapped by copyshm is %d", i - PGSIZE);
   return newpgdir;
 
 bad:
@@ -533,10 +532,10 @@ int shmget(uint key, uint size, uint shmflag)
             if(shms[i].key == 0)
                 break;
 
-        if(i == MAX_SHM)
-        {
-            return ENOSPC;
-        }
+        /*if(i == MAX_SHM)*/
+        /*{*/
+        /*    return ENOSPC;*/
+        /*}*/
 
         shm_ds_init(i, size, shmflag); 
         return i + 1;
@@ -654,7 +653,7 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
     }
 
     if(shmaddr == 0)
-        shmaddr = HEAPLIMIT + curproc->shm_sz;
+        shmaddr = curproc->shm_sz;
      
     if(shmaddr < HEAPLIMIT || shmaddr >= KERNBASE)
         return EINVAL;
@@ -684,7 +683,7 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
     }
     shm_proc->va = (void*)shmaddr; 
     int last_addr = shmaddr + size - 1;  
-    curproc->shm_sz = last_addr;
+    curproc->shm_sz = last_addr + 1;
 
     return (int)shm_proc->va;
 }
