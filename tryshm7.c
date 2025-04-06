@@ -9,6 +9,11 @@ void print_shm_error(int errno);
 int main(){
     int shm_id;
     shm_id = shmget(IPC_PRIVATE, 10000, 0664);  // note only read permission is given
+    if(shm_id < 0){
+        print_shm_error(shm_id);
+        exit();
+    }
+    printf(0, "NOTE: Done getting a segment since its required for testing ahead.\n");
 
     int ptr;
 
@@ -23,8 +28,54 @@ int main(){
         exit();
     }
 
+    // printf(0, "\nSimulating error: Calling shmat without shmget...\n");
+
+    // // just for demo purpose specific to this case since we want to bypass the removed identified check in shmat
+    // shms[1].key = 2;    
+
+    // ptr = shmat(2, 0, SHM_RDONLY);
+    // if(ptr < 0){
+    //     print_shm_error(ptr);
+    //     printf(0, "*****Error check passed.*****\n");
+    // }
+    // else{
+    //     printf(0, "*****Error check FAILED!!*****\n");
+    //     exit();
+    // }
+
+    // shms[1].key = 0;    //reset the demo stuff particular to this case.
+
+
+    // attaching one segment which would be required for testing ahead.
+    ptr = shmat(1, 0, SHM_RDONLY);
+    if(ptr < 0){
+        print_shm_error(ptr);
+        exit();
+    }
+    printf(0, "NOTE: Done attaching segment with id: 1 to the current process. Required for testing ahead.\n");
+
+    printf(0, "\nSimulating error: Calling shmat multiple times without REMAP flag...\n");
+    ptr = shmat(1, 0, SHM_RDONLY);
+    if(ptr < 0){
+        print_shm_error(ptr);
+        printf(0, "*****Error check passed.*****\n");
+    }
+    else{
+        printf(0, "*****Error check FAILED!!*****\n");
+        exit();
+    }
+
+    // getting another segment for demo aheadh.
+    shm_id = shmget(IPC_PRIVATE, 10000, 0664);  // note only read permission is given
+    if(shm_id < 0){
+        print_shm_error(shm_id);
+        exit();
+    }
+    printf(0, "NOTE: Done getting another segment since its required for testing ahead.\n");
+
+
     printf(0, "\nSimulating error: Segment has only read but we want more (SHM_EXEC or 0)...\n");
-    ptr = shmat(1, 0, SHM_EXEC);
+    ptr = shmat(2, 0, SHM_EXEC);
     if(ptr < 0){
         print_shm_error(ptr);
         printf(0, "*****Error check passed.*****\n");
@@ -35,7 +86,7 @@ int main(){
     }
 
     printf(0, "\nSimulating error: address < HEAPLIMIT or > KERNBASE...\n");
-    ptr = shmat(1, 0x50000000, SHM_RDONLY);
+    ptr = shmat(2, 0x50000000, SHM_RDONLY);
     if(ptr < 0){
         print_shm_error(ptr);
         printf(0, "*****Error check passed.*****\n");
@@ -46,7 +97,7 @@ int main(){
     }
 
     printf(0, "\nSimulating error: address not aligned to page boundary...\n");
-    ptr = shmat(1, 0x80000005, SHM_RDONLY);
+    ptr = shmat(2, 0x80000005, SHM_RDONLY);
     if(ptr < 0){
         print_shm_error(ptr);
         printf(0, "*****Error check passed.*****\n");
@@ -57,7 +108,7 @@ int main(){
     }
 
     printf(0, "\nSimulating error: SHM_REMAP flag but addr is 0(NULL)...\n");
-    ptr = shmat(1, 0, SHM_REMAP | SHM_RDONLY);
+    ptr = shmat(2, 0, SHM_REMAP | SHM_RDONLY);
     if(ptr < 0){
         print_shm_error(ptr);
         printf(0, "*****Error check passed.*****\n");
@@ -68,7 +119,7 @@ int main(){
     }
 
 
-    printf(0, "\n*****ALL TEST CASES PASSED!******");
+    printf(0, "\n*****ALL TEST CASES PASSED!******\n");
     exit();
 }
 
@@ -106,7 +157,7 @@ void print_shm_error(int errno) {
             printf(0, "Error: Invalid shmid value, unaligned shmaddr, or invalid shmaddr value, or cannot attach segment at shmaddr, or SHM_REMAP was specified and shmaddr was NULL.\n");
             break;
         default:
-            printf(0, "Error: Unknown error.\n");
+            printf(0, "Error: as mentioned above in the kernel code itself\n");
             break;
     }
 }

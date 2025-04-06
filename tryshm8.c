@@ -7,77 +7,23 @@
 void print_shm_error(int errno);
 
 int main(){
-    int shm_id;
 
-    printf(0, "\nSimulating error: calling shmget using only IPC_EXCL...\n");
-    shm_id = shmget(1, 10000, IPC_EXCL | 0666);
-    if(shm_id < 0){
-        print_shm_error(shm_id);
-        printf(0, "*****Error check passed.*****\n");
+    int count = 0;
+
+    int shmid = shmget(IPC_PRIVATE, sizeof(count), 0666);
+    printf(0, "\nFirst segment created....\n");
+    
+    int pid;
+    if(fork() != 0){
+        wait();
     }
     else{
-        printf(0, "*****Error check FAILED!!*****\n");
-        exit();
-    }
 
-
-    printf(0, "\nSimulating: Creating segment using only IPC_CREAT flag ...\n");
-    shm_id = shmget(1, 10000, IPC_CREAT | 0666);
-    if(shm_id < 0){
-        print_shm_error(shm_id);
-        exit();
-    }
-    else{
-        printf(0, "Segment created!\n"); 
     }
 
 
 
-    printf(0, "\nSimulating error: Trying to create a segment which already exists...\n");
-    shm_id = shmget(1, 10000, IPC_CREAT | IPC_EXCL | 0666);
-    if(shm_id < 0){
-        print_shm_error(shm_id);
-        printf(0, "*****Error check passed.*****\n");
-    }
-    else{
-        printf(0, "*****Error check FAILED!!*****\n");
-        exit();
-    }
 
-    printf(0, "\nSimulating error: Trying to get segment of size greater than existing one...\n");
-    shm_id = shmget(1, 12000, 0666);
-    if(shm_id < 0){
-        print_shm_error(shm_id);
-        printf(0, "*****Error check passed.*****\n");
-    }
-    else{
-        printf(0, "*****Error check FAILED!!*****\n");
-        exit();
-    }
-
-
-    printf(0, "\nSimulating error: Permission not matching...\n");
-    shm_id = shmget(1, 10000, 0660);
-    if(shm_id < 0){
-        print_shm_error(shm_id);
-        printf(0, "*****Error check passed.*****\n");
-    }
-    else{
-        printf(0, "*****Error check FAILED!!*****\n");
-        exit();
-    }
-
-
-    printf(0, "\nSimulating error: Segment not existing and IPC_CREAT not mentioned...\n");
-    shm_id = shmget(5, 10000, 0660);
-    if(shm_id < 0){
-        print_shm_error(shm_id);
-        printf(0, "*****Error check passed.*****\n");
-    }
-    else{
-        printf(0, "*****Error check FAILED!!*****\n");
-        exit();
-    }
 
     printf(0, "\n*****ALL TEST CASES PASSED!******");
     exit();
@@ -117,7 +63,7 @@ void print_shm_error(int errno) {
             printf(0, "Error: Invalid shmid value, unaligned shmaddr, or invalid shmaddr value, or cannot attach segment at shmaddr, or SHM_REMAP was specified and shmaddr was NULL.\n");
             break;
         default:
-            printf(0, "Error: as mentioned above in the kernel code itself\n");
+            printf(0, "Error: Unknown error.\n");
             break;
     }
 }

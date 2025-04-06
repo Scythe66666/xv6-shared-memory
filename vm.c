@@ -461,25 +461,29 @@ void shm_ds_init(uint index, uint size, uint shmflag)
     //think about the locks over here
     if(shms[index].key == 0)
     {
-        shms[index].key = index + 1;
-        shms[index].size = size;
-        shms[index].pid = myproc()->pid;
-        shms[index].nget = 1;
-        shms[index].lpid = -1;
-        shms[index].flags = shmflag;
-        shms[index].alloclist_index = 0;
-	// rethink since permission are in octal!
-        shms[index].shm_perm.mode = shmflag & 7;
-    } 
-    int i = 0;
-    
-    for(i = 0; i <= size; i += PGSIZE)
-    {
-        char* mem = kalloc();
-        memset(mem, 0, PGSIZE);
-        shms[index].alloclist[shms[index].alloclist_index] = V2P(mem);
-        shms[index].alloclist_index++;
+      shms[index].key = index + 1;
+      shms[index].size = size;
+      shms[index].pid = myproc()->pid;
+      shms[index].nget = 1;
+      shms[index].lpid = -1;
+      shms[index].flags = shmflag;
+      shms[index].alloclist_index = 0;
+      // rethink since permission are in octal!
+      shms[index].shm_perm.mode = shmflag & 7;
+
+      int i = 0;
+      for(i = 0; i <= size; i += PGSIZE)
+      {
+          char* mem = kalloc();
+          memset(mem, 0, PGSIZE);
+          shms[index].alloclist[shms[index].alloclist_index] = V2P(mem);
+          shms[index].alloclist_index++;
+      }
     }
+    else{
+      shms[index].nget += 1;
+    }
+    
     
     struct proc* curproc = myproc();
     curproc->num_shm++;
@@ -487,8 +491,8 @@ void shm_ds_init(uint index, uint size, uint shmflag)
     
     if(shm_proc->id != 0)
     {
-        cprintf("kernel panic\n\n");
-        return;
+        cprintf("kernel panic: calling shmget multiple time on same segment!\n\n");
+        return -1;
     }
 
     // new entry in shm_proc
@@ -622,6 +626,18 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
     //*  */*/
     //*  return -1;*/
     /*}*/
+
+    // calling shmat without shmget
+    if(shm_proc->id == 0){
+      cprintf("Error: Calling shmat without first calling shmget!\n");
+      return -1;  //custom error handling
+    }
+
+    //calling shmat multiple times without REMAP flag.
+    if((shm_proc->va != 0) && !(shmflag & SHM_REMAP)){
+      cprintf("Error: Calling shmat multiple time without SHM_REMAP flag.\n");
+      return -1;  // custom error handling
+    }
 
     // checking permission
     if((shmflag & 7) == SHM_RDONLY){   // for read only
