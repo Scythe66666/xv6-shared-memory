@@ -55,7 +55,7 @@ int main(){
         exit();
     }
 
-
+    //TODO: redo the permissions, this is not correct
     printf(0, "\nSimulating error: Permission not matching...\n");
     shm_id = shmget(1, 10000, 0660);
     if(shm_id < 0){

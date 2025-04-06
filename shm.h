@@ -44,6 +44,8 @@ struct shm_ds {
   uint alloclist[1000];   //physical page addresses
   int alloclist_index; //points to first unallocated index
   uint flags;
+  int delete_mark;  // this will be one when marked 
+    // for deletion
   struct ipc_perm shm_perm;    // access permissions
 };
 

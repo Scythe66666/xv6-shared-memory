@@ -433,7 +433,7 @@ uint shm_allocated;
 void shm_unget(int index)
 {
     shms[index].nget--;
-    if(shms[index].nget == 0)
+    if(shms[index].nget == 0 && shms[index].delete_mark == 1)
     {
       //TODO here call the function to wrap up 
       //the shm
@@ -492,7 +492,7 @@ void shm_ds_init(uint index, uint size, uint shmflag)
     if(shm_proc->id != 0)
     {
         cprintf("kernel panic: calling shmget multiple time on same segment!\n\n");
-        return -1;
+        return ;
     }
 
     // new entry in shm_proc
@@ -500,8 +500,6 @@ void shm_ds_init(uint index, uint size, uint shmflag)
     shm_proc->id = index + 1;
     shm_proc->va = 0;
     // need to rethinnk about this since it has to be going into PTE as well!
-    shm_proc->permissions = 511 & shmflag;  //least significatn 9 bits for permissions
-
 }
 
 

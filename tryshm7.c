@@ -17,7 +17,7 @@ int main(){
 
     int ptr;
 
-    printf(0, "\nSimulating error: shmid points to a removed identifier...\n");
+    printf(0, "\nSimulating error: shmid points to a non-existing identifier...\n");
     ptr = shmat(2, 0, SHM_RDONLY);
     if(ptr < 0){
         print_shm_error(ptr);
@@ -28,25 +28,32 @@ int main(){
         exit();
     }
 
-    // printf(0, "\nSimulating error: Calling shmat without shmget...\n");
+    printf(0, "\nSimulating error: Calling shmat without shmget...\n");
 
-    // // just for demo purpose specific to this case since we want to bypass the removed identified check in shmat
-    // shms[1].key = 2;    
+    // just for demo purpose specific to this case since we want to bypass the removed identified check in shmat
+    
+    if(fork() == 0)
+    { 
+        shmget(2, 5000, IPC_CREAT | IPC_EXCL | 0664);
+        exit();
+    } 
+    wait();
+    ptr = shmat(2, 0, 0664);
+    if(ptr < 0){
+        print_shm_error(ptr);
+         printf(0, "*****Error check passed.*****\n");
+    }
+    else{
+         printf(0, "*****Error check FAILED!!*****\n");
+         exit();
+    }
 
-    // ptr = shmat(2, 0, SHM_RDONLY);
-    // if(ptr < 0){
-    //     print_shm_error(ptr);
-    //     printf(0, "*****Error check passed.*****\n");
-    // }
-    // else{
-    //     printf(0, "*****Error check FAILED!!*****\n");
-    //     exit();
-    // }
-
-    // shms[1].key = 0;    //reset the demo stuff particular to this case.
 
 
     // attaching one segment which would be required for testing ahead.
+
+
+
     ptr = shmat(1, 0, SHM_RDONLY);
     if(ptr < 0){
         print_shm_error(ptr);
