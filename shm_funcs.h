@@ -4,3 +4,4 @@ int shmget(uint key, uint size, uint shmflag);
 int shmat(uint shmid, uint shmaddr, uint shmflag);
 int shmdt(void* addr);
 void shm_unget(int index);
+int shmctl(uint shmid, int op, struct shm_ds *buf);

@@ -28,6 +28,9 @@
 #define ENOSPC     -9
 #define EIDRM       -10
 #define EINVAL      -11
+#define EINVAL_CTL  -12
+#define EFAULT      -13
+#define EPERM       -14
 
 struct ipc_perm{
 	uint key;
@@ -48,6 +51,13 @@ struct shm_ds {
     // for deletion
   struct ipc_perm shm_perm;    // access permissions
 };
+
+
+
+/* #define for the op paramter of shmctl */
+#define IPC_STAT 1
+#define IPC_SET 2
+#define IPC_RMID 3
 
 
 

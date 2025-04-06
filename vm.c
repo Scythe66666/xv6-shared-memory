@@ -778,3 +778,51 @@ shmmappages(pde_t *pgdir, uint va, uint size, uint pa, int perm, int remap)
   return 0;
 }
 
+
+int shmctl(uint shmid, int op, struct shm_ds *buf){
+
+  if(shms[shmid - 1].key == 0){
+    return EIDRM;
+  }
+
+  // copying info from kernel ds to buf
+  if(op == IPC_STAT){
+
+    // read permission
+    if(shms[shmid - 1].shm_perm.mode & SHM_RDONLY == 0){
+      return EACCES;
+    }
+
+    // NOTE: have omitted these field: alloclist[], alloclist_index, flags.
+    buf->key = shms[shmid - 1].key;
+    buf->size = shms[shmid - 1].size;
+    buf->pid = shms[shmid - 1].pid;
+    buf->lpid = shms[shmid - 1].lpid;
+    buf->nget = shms[shmid - 1].nget;
+    buf->delete_mark = shms[shmid - 1].delete_mark;
+    (buf->shm_perm).key = shms[shmid - 1].shm_perm.key;
+    (buf->shm_perm).mode = shms[shmid - 1].shm_perm.mode;
+
+    // as mentioned in man page need to return the identifier that segment
+    return shms[shmid - 1].key;
+  }
+
+  if(op == IPC_SET){
+
+    // in xv6 only mode can be set this way.
+    shms[shmid - 1].shm_perm.mode = (buf->shm_perm).mode;
+
+    return 0;
+  }
+
+  if(op == IPC_RMID){
+
+    // in our case its delete_mark field of shm_ds and nothing like SHM_DEST flag
+    shms[shmid - 1].delete_mark = 1;
+
+    return 0;
+  }
+
+  // since it entered none of the valid op conditionals.
+  return EINVAL_CTL;
+}
