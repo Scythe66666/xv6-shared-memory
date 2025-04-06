@@ -457,14 +457,14 @@ void shm_unget(int index)
  */
 void shm_ds_init(uint index, uint size, uint shmflag)
 {
+    struct proc* curproc = myproc();
     //think about the locks over here
     if(shms[index].key == 0)
     {
       shms[index].key = index + 1;
       shms[index].size = size;
-      shms[index].pid = myproc()->pid;
+      shms[index].pid = curproc->pid;
       shms[index].nget = 1;
-      shms[index].lpid = -1;
       shms[index].flags = shmflag;
       shms[index].alloclist_index = 0;
       // rethink since permission are in octal!
@@ -484,7 +484,6 @@ void shm_ds_init(uint index, uint size, uint shmflag)
     }
     
     
-    struct proc* curproc = myproc();
     curproc->num_shm++;
     struct shm_proc* shm_proc = &(curproc->shm_arr[index]);
     
