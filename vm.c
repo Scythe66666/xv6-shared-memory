@@ -467,6 +467,7 @@ void shm_ds_init(uint index, uint size, uint shmflag)
       shms[index].nget = 1;
       shms[index].flags = shmflag;
       shms[index].alloclist_index = 0;
+      shms[index].shm_perm.key = index + 1;
       // rethink since permission are in octal!
       shms[index].shm_perm.mode = shmflag & 7;
 
@@ -794,7 +795,7 @@ int shmctl(uint shmid, int op, struct shm_ds *buf){
   if(op == IPC_STAT){
 
     // read permission
-    if(shms[shmid - 1].shm_perm.mode & SHM_RDONLY == 0){
+    if((shms[shmid - 1].shm_perm.mode & SHM_RDONLY) == 0){
       return EACCES;
     }
 

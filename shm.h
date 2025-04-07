@@ -1,3 +1,5 @@
+#ifndef SHM_H
+#define SHM_H
 
 //defining rough #defines
 #define IPC_PRIVATE 0     //since otherwise keys actually start from 1???
@@ -62,3 +64,4 @@ struct shm_ds {
 
 
 
+#endif
