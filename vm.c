@@ -785,6 +785,11 @@ int shmctl(uint shmid, int op, struct shm_ds *buf){
     return EIDRM;
   }
 
+  // if buf isnt accessible
+  if(buf == 0){
+    return EFAULT;
+  }
+
   // copying info from kernel ds to buf
   if(op == IPC_STAT){
 

@@ -481,7 +481,10 @@ sys_shmctl(void)
   uint shmid;
   int op;
   struct shm_ds *buf;
-  if(argint(0, (int*)&shmid) < 0 || argint(1, (int*)&op) < 0 || argint(2, (int*)&buf)){
+  if(argint(0, (int*)&shmid) < 0 || argint(1, (int*)&op) < 0){
+    return -1;
+  }
+  if(argptr(2, (char**)&buf, sizeof(struct shm_ds)) < 0){
     return -1;
   }
 
