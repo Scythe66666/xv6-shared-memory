@@ -52,8 +52,7 @@ int main(){
 
     // attaching one segment which would be required for testing ahead.
 
-
-
+    shmget(2, 5000, IPC_CREAT | IPC_EXCL | 0664);
     ptr = shmat(1, 0, SHM_RDONLY);
     if(ptr < 0){
         print_shm_error(ptr);

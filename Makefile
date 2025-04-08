@@ -181,13 +181,12 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
-	_tryshmctl\
-	_ipcmk\
-	_tryipcmk\
-	_tryipcrm\
-	_ipcrm\
 	_tryshm8\
+	_tryshm6\
+	_tryshm7\
 	_tryshm9\
+	_tryshm1\
+	_ipcs\
 #TODO add tryshm8 and  9 and try again
 	
 
