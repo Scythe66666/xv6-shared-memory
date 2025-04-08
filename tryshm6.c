@@ -22,7 +22,7 @@ int main(){
 
 
     printf(0, "\nSimulating: Creating segment using only IPC_CREAT flag ...\n");
-    shm_id = shmget(1, 10000, IPC_CREAT | 0666);
+    shm_id = shmget(1, 10000, IPC_CREAT | 0664);
     if(shm_id < 0){
         print_shm_error(shm_id);
         exit();
@@ -34,7 +34,7 @@ int main(){
 
 
     printf(0, "\nSimulating error: Trying to create a segment which already exists...\n");
-    shm_id = shmget(1, 10000, IPC_CREAT | IPC_EXCL | 0666);
+    shm_id = shmget(1, 10000, IPC_CREAT | IPC_EXCL | 0664);
     if(shm_id < 0){
         print_shm_error(shm_id);
         printf(0, "*****Error check passed.*****\n");
@@ -45,7 +45,7 @@ int main(){
     }
 
     printf(0, "\nSimulating error: Trying to get segment of size greater than existing one...\n");
-    shm_id = shmget(1, 12000, 0666);
+    shm_id = shmget(1, 12000, 0664);
     if(shm_id < 0){
         print_shm_error(shm_id);
         printf(0, "*****Error check passed.*****\n");
@@ -57,7 +57,7 @@ int main(){
 
     //TODO: redo the permissions, this is not correct
     printf(0, "\nSimulating error: Permission not matching...\n");
-    shm_id = shmget(1, 10000, 0660);
+    shm_id = shmget(1, 10000, 0666);
     if(shm_id < 0){
         print_shm_error(shm_id);
         printf(0, "*****Error check passed.*****\n");

@@ -82,7 +82,7 @@ int main(){
 
 
     printf(0, "\nSimulating error: Segment has only read but we want more (SHM_EXEC or 0)...\n");
-    ptr = shmat(2, 0, SHM_EXEC);
+    ptr = shmat(3, 0, SHM_EXEC);
     if(ptr < 0){
         print_shm_error(ptr);
         printf(0, "*****Error check passed.*****\n");
@@ -93,7 +93,7 @@ int main(){
     }
 
     printf(0, "\nSimulating error: address < HEAPLIMIT or > KERNBASE...\n");
-    ptr = shmat(2, 0x50000000, SHM_RDONLY);
+    ptr = shmat(3, 0x50000000, SHM_RDONLY);
     if(ptr < 0){
         print_shm_error(ptr);
         printf(0, "*****Error check passed.*****\n");
@@ -104,7 +104,7 @@ int main(){
     }
 
     printf(0, "\nSimulating error: address not aligned to page boundary...\n");
-    ptr = shmat(2, 0x80000005, SHM_RDONLY);
+    ptr = shmat(3, 0x80000005, SHM_RDONLY);
     if(ptr < 0){
         print_shm_error(ptr);
         printf(0, "*****Error check passed.*****\n");
@@ -115,7 +115,7 @@ int main(){
     }
 
     printf(0, "\nSimulating error: SHM_REMAP flag but addr is 0(NULL)...\n");
-    ptr = shmat(2, 0, SHM_REMAP | SHM_RDONLY);
+    ptr = shmat(3, 0, SHM_REMAP | SHM_RDONLY);
     if(ptr < 0){
         print_shm_error(ptr);
         printf(0, "*****Error check passed.*****\n");

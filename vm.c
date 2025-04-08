@@ -446,7 +446,7 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 // Blank page.
 
 
-#define MAX_SHM 10
+#define MAX_SHM 255
 //remember index into the arrays is key - 1
 struct shm_ds shms[MAX_SHM];
 uint shm_allocated;
@@ -638,14 +638,6 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
       return EIDRM;
     }
 
-    // if calling shmat multiple times.
-    /*if(shm_proc->id == shmid){*/
-    //*  /**/
-    //*  * custom error.*/
-    //*  */*/
-    //*  return -1;*/
-    /*}*/
-
     // calling shmat without shmget
     if(shm_proc->id == 0){
       cprintf("Error: Calling shmat without first calling shmget!\n");
@@ -696,7 +688,7 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
     //TODO: remove the hardcoded value(Sumedh)
     int perm = PTE_U;
 
-    if(!(shmflag & SHM_RDONLY)){
+    if(((shmflag & 7) == SHM_EXEC) || ((shmflag & 7) == 0)){
       perm |= PTE_W;
     }
 

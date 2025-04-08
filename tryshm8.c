@@ -12,17 +12,13 @@ int main(){
 
     int count = 0;
     int shm_id = shmget(IPC_PRIVATE, sizeof(count), 0666);
-    printf(0, "value of shm_id is %d", shm_id); 
     if(shm_id < 0){
         print_shm_error(shm_id);
         exit();
     }
-    
-    printf(0, "value of shm_id is %d", shm_id); 
+     
     for(int i = 0; i < 10; i++){
         if(fork() == 0){
-
-            printf(0, "i = %d", i); 
             exec("tryshm9", argv);
 
             // if exec fails

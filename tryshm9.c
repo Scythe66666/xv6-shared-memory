@@ -9,7 +9,6 @@ void print_shm_error(int errno);
 int main(){
     
     int shm_id = shmget(1, sizeof(int), 0666);
-    printf(0, "shm_id is %d", shm_id);
     if(shm_id < 0){
         print_shm_error(shm_id);
         exit();
