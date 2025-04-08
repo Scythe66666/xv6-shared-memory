@@ -433,7 +433,7 @@ void shm_delete(int index)
 {
       //TODO here call the function to wrap up 
       //the shm
-      
+      cprintf("shm with id:%d will be deleted \n", index + 1);      
       shms[index].key = 0;
       shms[index].size = 0;
       shms[index].pid = 0;
@@ -442,6 +442,7 @@ void shm_delete(int index)
       shms[index].alloclist_index = 0;
       shms[index].shm_perm.mode = 0;
       shms[index].nattach = 0;
+      shms[index].delete_mark = 0;
 }
 
 /**
@@ -465,6 +466,7 @@ void shm_ds_init(uint index, uint size, uint shmflag)
       shms[index].shm_perm.key = index + 1;
       // rethink since permission are in octal!
       shms[index].shm_perm.mode = shmflag & 7;
+      shms[index].delete_mark = 0;
 
       int i = 0;
       for(i = 0; i <= size; i += PGSIZE)
