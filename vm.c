@@ -429,24 +429,19 @@ uint shm_allocated;
 
 //the function will reduce the nget of shms[index]
 //and if reaches 0 it will initialie it to 0
-void shm_unget(int index)
+void shm_delete(int index)
 {
-    shms[index].nget--;
-    if(shms[index].nget == 0 && shms[index].delete_mark == 1)
-    {
       //TODO here call the function to wrap up 
       //the shm
       
       shms[index].key = 0;
       shms[index].size = 0;
       shms[index].pid = 0;
-      shms[index].nget = 0;
       shms[index].lpid = 0;
       shms[index].flags = 0;
       shms[index].alloclist_index = 0;
       shms[index].shm_perm.mode = 0;
-
-    }
+      shms[index].nattach = 0;
 }
 
 /**
@@ -464,7 +459,7 @@ void shm_ds_init(uint index, uint size, uint shmflag)
       shms[index].key = index + 1;
       shms[index].size = size;
       shms[index].pid = curproc->pid;
-      shms[index].nget = 1;
+      shms[index].nattach = 0;
       shms[index].flags = shmflag;
       shms[index].alloclist_index = 0;
       shms[index].shm_perm.key = index + 1;
@@ -480,9 +475,9 @@ void shm_ds_init(uint index, uint size, uint shmflag)
           shms[index].alloclist_index++;
       }
     }
-    else{
-      shms[index].nget += 1;
-    }
+    /*else{*/
+    /*  shms[index].nattach += 1;*/
+    /*}*/
     
     
     curproc->num_shm++;
@@ -576,7 +571,6 @@ int shmget(uint key, uint size, uint shmflag)
           return EACCES;
         }
         
-        shms[key - 1].nget++;
         shm_ds_init(key - 1, size, shmflag);
         
         return key;
@@ -607,7 +601,7 @@ int shmget(uint key, uint size, uint shmflag)
 * param: 
 * */
 int shmat(uint shmid, uint shmaddr, uint shmflag)
-{
+{ 
     struct proc* curproc = myproc();
     struct shm_proc* shm_proc = &(curproc->shm_arr[shmid - 1]);
 
@@ -653,7 +647,7 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
     }
 
     if(shmaddr == 0)
-        shmaddr = curproc->shm_sz;
+        shmaddr = PGROUNDUP(curproc->shm_sz);
      
     if(shmaddr < HEAPLIMIT || shmaddr >= KERNBASE)
         return EINVAL;
@@ -671,6 +665,7 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
 
     // either 4 or 0
     int remap = (shmflag & SHM_REMAP);
+    //TODO: remove the hardcoded value(Sumedh)
     int perm = PTE_W | PTE_U | PTE_P; 
 
     if(shmmap(curproc->pgdir, shmaddr, shms[shmid - 1].alloclist, shms[shmid - 1].alloclist_index, size, perm, remap) < 0)
@@ -684,6 +679,7 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
     shm_proc->va = (void*)shmaddr; 
     int last_addr = shmaddr + size - 1;  
     curproc->shm_sz = last_addr + 1;
+    shms[shmid - 1].nattach += 1; 
 
     return (int)shm_proc->va;
 }
@@ -713,10 +709,14 @@ int shmdt(void* addr)
         {    
             deallocuvm(currproc->pgdir, (uint)(addr + shm_proc->sz), (uint)addr); 
             shm_proc->va = 0;
+            shms[i].nattach--;
+            if(shms[i].delete_mark == 1 &&
+            shms[i].nattach == 0)
+                shm_delete(i); 
             return 1;
         }
     }
-
+    
     return EINVAL;
 }
 
@@ -804,7 +804,7 @@ int shmctl(uint shmid, int op, struct shm_ds *buf){
     buf->size = shms[shmid - 1].size;
     buf->pid = shms[shmid - 1].pid;
     buf->lpid = shms[shmid - 1].lpid;
-    buf->nget = shms[shmid - 1].nget;
+    buf->nattach = shms[shmid - 1].nattach;
     buf->delete_mark = shms[shmid - 1].delete_mark;
     (buf->shm_perm).key = shms[shmid - 1].shm_perm.key;
     (buf->shm_perm).mode = shms[shmid - 1].shm_perm.mode;
@@ -832,3 +832,6 @@ int shmctl(uint shmid, int op, struct shm_ds *buf){
   // since it entered none of the valid op conditionals.
   return EINVAL_CTL;
 }
+
+
+

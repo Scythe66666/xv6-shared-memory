@@ -471,7 +471,12 @@ sys_shmat(void)
 
 int sys_shmdt(void)
 {
-    return 0;
+    uint shmaddr;
+    if(argint(0, (int*)&shmaddr) < 0){
+        return -1;
+    }
+
+    return shmdt((void*) shmaddr);
 }
 
 int

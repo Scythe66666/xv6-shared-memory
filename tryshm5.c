@@ -9,6 +9,8 @@ int main()
     int shm_id = shmget(IPC_PRIVATE, 10000, 0666); 
     int* ptr = (int*) shmat(shm_id, 0, 0666);  
     printf(0, "value of ptr is %d shmid is: %d", ptr, shm_id);
+    shmdt((char *)ptr);
+    ptr = (int*) shmat(shm_id, 0, 0666);  
     for(int i = 0; i < 10000 / 4; i++)
     { 
         int *ptr2 = ptr + i;
@@ -16,12 +18,5 @@ int main()
         *(ptr + i) = i;
     } 
     printf(0, "exited the loop ");
-    
-
-    if(fork() == 0)
-    {
-        printf(0, "inside the child");
-    } 
-    else
-        wait();
+    exit();
 }

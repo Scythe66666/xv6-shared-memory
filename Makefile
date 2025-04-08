@@ -182,8 +182,14 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_tryshmctl\
+	_tryshm1\
+	_tryshm2\
 	_tryshm3\
-
+	_tryshm4\
+	_tryshm5\
+	_tryshm6\
+	_tryshm7\
+	#TODO add tryshm8 and  9 and try again
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

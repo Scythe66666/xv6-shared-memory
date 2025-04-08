@@ -11,7 +11,7 @@ int main(){
     int count = 0;
 
     int shmid = shmget(IPC_PRIVATE, sizeof(count), 0666);
-    if(shm_id < 0){
+    if(shmid < 0){
         print_shm_error(shm_id);
         exit();
     }

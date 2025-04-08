@@ -221,8 +221,6 @@ fork(void)
     
     np->shm_arr[i] = curproc->shm_arr[i];
     
-    if(np->shm_arr[i].id == i + 1)
-        shms[i].nget++;
   }
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -295,7 +293,6 @@ exit(void)
     if(shm_proc->va != 0)
       shmdt(shm_proc->va);
     
-    shm_unget(i);
   }
 
   // Jump into the scheduler, never to return.

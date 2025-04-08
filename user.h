@@ -27,7 +27,7 @@ int sleep(int);
 int uptime(void);
 int shmget(uint key, uint size, uint shmflag);
 int shmat(uint shmid, uint shmaddr, uint shmflag);
-int shmdt(void* addr);
+int shmdt(char* addr);
 int shmctl(uint shmid, int op, struct shm_ds *buf);
 
 // ulib.c

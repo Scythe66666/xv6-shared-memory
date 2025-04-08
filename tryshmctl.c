@@ -29,7 +29,7 @@ int main(){
     printf(0, "buf->size: %d\n", buf.size);
     printf(0, "buf->pid: %d\n", buf.pid);
     printf(0, "buf->lpid: %d\n", buf.lpid);
-    printf(0, "buf->nget: %d\n", buf.nget);
+    printf(0, "buf->nattac: %d\n", buf.nattach);
     printf(0, "buf->delete_mark: %d\n", buf.delete_mark);
     printf(0, "buf->shm_perm.key: %d\n", buf.shm_perm.key);
     printf(0, "buf->shm_perm.mode: %d\n", buf.shm_perm.mode);
