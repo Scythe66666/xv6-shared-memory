@@ -18,6 +18,10 @@ exec(char *path, char **argv)
   struct proghdr ph;
   pde_t *pgdir, *oldpgdir;
   struct proc *curproc = myproc();
+  
+  for(int i = 0; i < 256; i++){
+    curproc->shm_arr[i].id = 0;
+  }
 
   begin_op();
 

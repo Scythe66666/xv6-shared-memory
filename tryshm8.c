@@ -6,33 +6,30 @@
 
 void print_shm_error(int errno);
 
+char* argv[] = {0};
+
 int main(){
 
     int count = 0;
-
-    int shmid = shmget(IPC_PRIVATE, sizeof(count), 0666);
-    if(shmid < 0){
+    int shm_id = shmget(IPC_PRIVATE, sizeof(count), 0666);
+    if(shm_id < 0){
         print_shm_error(shm_id);
         exit();
     }
-    printf(0, "\nFirst segment created by process 1....\n");
-
-    int ptr = shmat(1, 0, SHM_EXEC);
-    if(ptr < 0){
-        print_shm_error(ptr);
-        exit();
-    }
-    printf(0, "\nFirst segment attached to process 1")
-
-    *ptr = 1;
-    printf(0, "\nSegment access and now %d proccess are attached to it...\n", *ptr);
     
-    int pid;
-    if(fork() != 0){
-        wait();
+    for(int i = 0; i < 10; i++){
+        if(fork() == 0){
+            exec("tryshm9", argv);
+
+            // if exec fails
+            printf(0, "Exec failed\n");
+            exit();
+        }
     }
-    else{
-        exec(tryshm9, tryshm9);
+
+
+    for(int i = 0; i < 10; i++){
+        wait();
     }
 
 

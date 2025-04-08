@@ -487,6 +487,8 @@ void shm_ds_init(uint index, uint size, uint shmflag)
     
     if(shm_proc->id != 0)
     {
+        cprintf("shm_proc: %d\n", shm_proc->id);
+
         cprintf("kernel panic: calling shmget multiple time on same segment!\n\n");
         return ;
     }
@@ -569,7 +571,7 @@ int shmget(uint key, uint size, uint shmflag)
         }
 
         //to check permissions
-        if(shms[key - 1].shm_perm.mode != (shmflag & 7)){
+        if((shmflag & 7) > shms[key - 1].shm_perm.mode){
           return EACCES;
         }
         
@@ -668,7 +670,11 @@ int shmat(uint shmid, uint shmaddr, uint shmflag)
     // either 4 or 0
     int remap = (shmflag & SHM_REMAP);
     //TODO: remove the hardcoded value(Sumedh)
-    int perm = PTE_W | PTE_U | PTE_P; 
+    int perm = PTE_U;
+
+    if(!(shmflag & SHM_RDONLY)){
+      perm |= PTE_W;
+    }
 
     if(shmmap(curproc->pgdir, shmaddr, shms[shmid - 1].alloclist, shms[shmid - 1].alloclist_index, size, perm, remap) < 0)
     {
