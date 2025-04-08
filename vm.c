@@ -281,6 +281,30 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   return newsz;
 }
 
+int
+deallocuvm_shm(pde_t *pgdir, uint oldsz, uint newsz)
+{
+  pte_t *pte;
+  uint a, pa;
+
+  if(newsz >= oldsz)
+    return oldsz;
+
+  a = PGROUNDUP(newsz);
+  for(; a  < oldsz; a += PGSIZE){
+    pte = walkpgdir(pgdir, (char*)a, 0);
+    if(!pte)
+      a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
+    else if((*pte & PTE_P) != 0){
+      pa = PTE_ADDR(*pte);
+      if(pa == 0)
+        panic("kfree");
+      *pte = 0;
+    }
+  }
+  return newsz;
+}
+
 // Free a page table and all the physical memory pages
 // in the user part.
 void
@@ -715,7 +739,7 @@ int shmdt(void* addr)
 
         if(shm_proc->id == i + 1 && shm_proc->va == addr)
         {    
-            deallocuvm(currproc->pgdir, (uint)(addr + shm_proc->sz), (uint)addr); 
+            deallocuvm_shm(currproc->pgdir, (uint)(addr + shm_proc->sz), (uint)addr); 
             shm_proc->va = 0;
             shms[i].nattach--;
             if(shms[i].delete_mark == 1 &&
