@@ -6,9 +6,11 @@
 
 void print_shm_error(int errno);
 
-int main(){
+int main(int argc, char* argv[]){
     
-    int shm_id = shmget(1, sizeof(int), 0666);
+    int shm_id = atoi(argv[1]);
+    shm_id = shmget(shm_id, sizeof(int), 0666);
+    printf(0, "shmid is %d", shm_id);
     if(shm_id < 0){
         print_shm_error(shm_id);
         exit();
@@ -16,7 +18,7 @@ int main(){
 
     int addr;
 
-    addr = shmat(1, 0, 0);
+    addr = shmat(shm_id, 0, 0);
     if(addr < 0){
         print_shm_error(addr);
         exit();

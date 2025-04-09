@@ -213,7 +213,7 @@ void tryshm7(){
     printf(0, "\nSimulating error: Calling shmat without shmget...\n");
 
     // just for demo purpose specific to this case since we want to bypass the removed identified check in shmat
-    int shm_id2;
+    int shm_id2 = 10000;
     if(fork() == 0)
     { 
         shm_id2 = shmget(IPC_PRIVATE, 5000, 0664);
@@ -465,6 +465,9 @@ void tryipcrm(){
 }
 
 int main(){
+    printf(0, "\nTesting: Multiple processes doing shm.....\n");
+    tryshm8();
+    printf(0, "\n********Test PASSED!*********\n");
 
     printf(0, "\nTesting: Trying to get multiple segment by the same process itself.....\n");
     tryshm1();
@@ -486,9 +489,6 @@ int main(){
     tryshm7();
     printf(0, "\n********Test PASSED!*********\n");
 
-    // printf(0, "\nTesting: Multiple processes doing shm.....\n");
-    // tryshm8();
-    // printf(0, "\n********Test PASSED!*********\n");
 
     printf(0, "\nTesting: shmctl.....\n");
     tryshmctl();

@@ -184,9 +184,6 @@ UPROGS=\
 	_ipcmk\
 	_ipcs\
 	_ipcrm\
-	_tryipcmk\
-	_tryipcrm\
-	_tryshmctl\
 	_tryshm8\
 	_tryshm9\
 	_shmtests\
