@@ -67,7 +67,6 @@ int main(){
         exit();
     }
 
-
     printf(0, "\nSimulating error: Segment not existing and IPC_CREAT not mentioned...\n");
     shm_id = shmget(5, 10000, 0660);
     if(shm_id < 0){

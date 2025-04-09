@@ -52,8 +52,6 @@ int main(){
 
     // attaching one segment which would be required for testing ahead.
 
-
-
     ptr = shmat(1, 0, SHM_RDONLY);
     if(ptr < 0){
         print_shm_error(ptr);
