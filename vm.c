@@ -70,9 +70,9 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
   last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
   for(;;){
     if((pte = walkpgdir(pgdir, a, 1)) == 0)
-        continue;
+      return -1;
     if(*pte & PTE_P)
-        continue;
+      panic("remap");
     *pte = pa | perm | PTE_P;
     if(a == last)
       break;
@@ -791,9 +791,9 @@ shmmappages(pde_t *pgdir, uint va, uint size, uint pa, int perm, int remap)
   last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
   for(;;){
     if((pte = walkpgdir(pgdir, a, 1)) == 0)
-      return -1;
+        continue;
     if(!remap && (*pte & PTE_P))
-      panic("remap");
+        continue;
     *pte = pa | perm | PTE_P;
     if(a == last)
       break;
