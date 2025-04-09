@@ -50,7 +50,6 @@ int main(int argc, char* argv[])
         }
         if(buf.key == 0)
             continue;
-        printf(0, "Sumedh was here\n"); 
         print_padded_int(buf.key, 10);
         print_padded_int(buf.nattach, 10);
         print_padded_int(buf.size, 10);
