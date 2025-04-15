@@ -6,6 +6,8 @@
 #include "defs.h"
 #include "x86.h"
 #include "elf.h"
+#include "shm.h"
+#include "shm_funcs.h"
 
 int
 exec(char *path, char **argv)
@@ -20,6 +22,9 @@ exec(char *path, char **argv)
   struct proc *curproc = myproc();
   
   for(int i = 0; i < 256; i++){
+    if(curproc->shm_arr[i].id != 0)
+        if(curproc->shm_arr[i].va != 0)
+            shmdt(curproc->shm_arr[i].va);
     curproc->shm_arr[i].id = 0;
   }
 
