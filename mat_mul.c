@@ -77,7 +77,7 @@ int main()
     int shmid1 = shmget(1, rows1 * cols1 * 4, IPC_CREAT | IPC_EXCL | 0666);
     printf(0, " checkpoint 1\n");
     int shmid2 = shmget(2, rows2 * cols2 * 4, IPC_CREAT | IPC_EXCL | 0666);
-    shmget(3, rows1 * cols2 * 4, 0666);
+    shmget(3, rows1 * cols1 * 4, IPC_CREAT | IPC_EXCL | 0666);
     printf(0, " checkpoint 1\n");
     
     int* Matrix1 = (int*)shmat(shmid1, 0, SHM_EXEC);
