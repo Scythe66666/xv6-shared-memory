@@ -34,14 +34,13 @@ int read_matrix_from_file(const char *filename, int *matrix, int rows, int cols)
   /*  }*/
   /*}*/
 
-    for(int i = 0; i < rows * cols; i++)
+    while(1) 
     {
         int n = read(fd, buf, MAXBUF - 1);
         if(n == 0)
-            printf(0, "terminated early\n");
+            break; 
         for(int j = 0; j < n; j++)
         {
-          i++; 
           if (buf[j] >= '0' && buf[j] <= '9') {
             val = val * 10 + (buf[j] - '0');  // Build the number
             reading = 1;

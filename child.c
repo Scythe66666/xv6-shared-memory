@@ -16,9 +16,11 @@ int main(int argc, char *argv[]) {
   int start_row = atoi(argv[4]);
   int end_row = atoi(argv[5]);
 
-  int *Matrix1 = (int *) shmat(shmget(1, rows1 * cols1 * 4, 0666), 0, SHM_EXEC);
-  int *Matrix2 = (int *) shmat(shmget(2, rows1 * cols1 * 4, 0666), 0, SHM_EXEC);
-  int *Answer = (int *) shmat(shmget(3, rows1 * cols1 * 4, 0666), 0, SHM_EXEC);
+  shmget(1, rows1 * cols1 * 4, 0666); shmget(2, rows1 * cols1 * 4, 0666);
+  shmget(3, rows1 * cols1 * 4, 0666);
+  int *Matrix1 = (int *) shmat(1, 0, SHM_EXEC);
+  int *Matrix2 = (int *) shmat(2, 0, SHM_EXEC);
+  int *Answer = (int *) shmat(3, 0, SHM_EXEC);
 
   for (int i = start_row; i < end_row; i++) {
     for (int j = 0; j < cols2; j++) {
