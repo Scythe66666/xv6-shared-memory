@@ -15,27 +15,57 @@ int read_matrix_from_file(const char *filename, int *matrix, int rows, int cols)
     exit();
   }
 
-  int n = read(fd, buf, MAXBUF - 1);
-  buf[n] = '\0';
-  close(fd);
+  /*int n = read(fd, buf, MAXBUF - 1);*/
+  /*buf[n] = '\0';*/
+  /*printf(0, "buf is %s \n", buf);*/
+  /*close(fd);*/
 
-  printf(0, "checkpoint inside the function value of n is %d\n", n);
-  int idx = 0, val = 0, count = 0;
-  for (int i = 0; buf[i] != '\0'; i++) {
-    printf(0, " value of i is %d\n", i);
-    if (buf[i] >= '0' && buf[i] <= '9') {
-      val = val * 10 + (buf[i] - '0');
-    } else if ((buf[i] == ' ' || buf[i] == '\n')) {
-      matrix[idx++] = val;
-      val = 0;
-      count++;
+  int idx = 0, val = 0, reading = 0;
+
+  /*for (int i = 0; buf[i] != '\0'; i++) {*/
+  /*  printf(0, "value of i is %d\n", i); */
+  /*  if (buf[i] >= '0' && buf[i] <= '9') {*/
+  /*    val = val * 10 + (buf[i] - '0');  // Build the number*/
+  /*    reading = 1;*/
+  /*  } else if ((buf[i] == ' ' || buf[i] == '\n') && reading) {*/
+  /*    matrix[idx++] = val;  // Save the number to the matrix*/
+  /*    val = 0;  // Reset for the next number*/
+  /*    reading = 0;*/
+  /*  }*/
+  /*}*/
+
+    for(int i = 0; i < rows * cols; i++)
+    {
+        int n = read(fd, buf, MAXBUF - 1);
+        if(n == 0)
+            printf(0, "terminated early\n");
+        for(int j = 0; j < n; j++)
+        {
+          i++; 
+          if (buf[j] >= '0' && buf[j] <= '9') {
+            val = val * 10 + (buf[j] - '0');  // Build the number
+            reading = 1;
+          } else if ((buf[j] == ' ' || buf[j] == '\n') && reading) {
+            matrix[idx++] = val;  // Save the number to the matrix
+            val = 0;  // Reset for the next number
+            reading = 0;
+          }
+        }
     }
+
+  // Handle last value if no trailing space
+  if (reading) {
+    matrix[idx++] = val;
   }
 
-  printf(0, "checkpoint inside the function last\n");
+  if (idx != rows * cols) {
+    printf(1, "Error: Expected %d elements but read %d.\n", rows * cols, idx);
+    exit();
+  }
 
   return idx;
 }
+
 
 int main()
 {
@@ -45,14 +75,16 @@ int main()
     int cols2 = 100;
     printf(0, " checkpoint 1\n");
     
-    int shmid1 = shmget(1, rows1 * cols1 * 4, 0666);
+    int shmid1 = shmget(1, rows1 * cols1 * 4, IPC_CREAT | IPC_EXCL | 0666);
     printf(0, " checkpoint 1\n");
-    int shmid2 = shmget(2, rows2 * cols2 * 4, 0666);
+    int shmid2 = shmget(2, rows2 * cols2 * 4, IPC_CREAT | IPC_EXCL | 0666);
     shmget(3, rows1 * cols2 * 4, 0666);
     printf(0, " checkpoint 1\n");
     
     int* Matrix1 = (int*)shmat(shmid1, 0, SHM_EXEC);
     int* Matrix2 = (int*)shmat(shmid2, 0, SHM_EXEC);
+    printf(0, " Matrix 1 is %p", Matrix1);
+    printf(0, " Matrix 2 is %p", Matrix2);
     printf(0, " checkpoint 2\n");
 
     read_matrix_from_file("Matrix1.txt", Matrix1, rows1, cols1);
