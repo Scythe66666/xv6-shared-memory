@@ -181,19 +181,15 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
-	_ipcmk\
-	_ipcs\
-	_ipcrm\
-	_tryshm8\
-	_tryshm9\
-	_shmtests\
+	_mat_mul\
+	_child\
 	
 	
 #TODO add tryshm8 and  9 and try again
 	
 
 fs.img: mkfs README $(UPROGS)
-	./mkfs fs.img README $(UPROGS)
+	./mkfs fs.img README Matrix2.txt Matrix1.txt $(UPROGS)
 
 -include *.d
 

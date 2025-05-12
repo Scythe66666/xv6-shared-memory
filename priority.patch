@@ -1,0 +1,239 @@
+diff --git a/Makefile b/Makefile
+index 09d790c..9dca32d 100644
+--- a/Makefile
++++ b/Makefile
+@@ -181,6 +181,7 @@ UPROGS=\
+ 	_usertests\
+ 	_wc\
+ 	_zombie\
++	_ten_proc\
+ 
+ fs.img: mkfs README $(UPROGS)
+ 	./mkfs fs.img README $(UPROGS)
+diff --git a/defs.h b/defs.h
+index 82fb982..b204948 100644
+--- a/defs.h
++++ b/defs.h
+@@ -80,6 +80,7 @@ void            lapiceoi(void);
+ void            lapicinit(void);
+ void            lapicstartap(uchar, uint);
+ void            microdelay(int);
++void            lapicw(int, int);
+ 
+ // log.c
+ void            initlog(int dev);
+@@ -120,6 +121,7 @@ void            userinit(void);
+ int             wait(void);
+ void            wakeup(void*);
+ void            yield(void);
++void            set_nice(int niceness);
+ 
+ // swtch.S
+ void            swtch(struct context**, struct context*);
+diff --git a/exec.c b/exec.c
+index b40134f..aff200c 100644
+--- a/exec.c
++++ b/exec.c
+@@ -99,6 +99,7 @@ exec(char *path, char **argv)
+   curproc->sz = sz;
+   curproc->tf->eip = elf.entry;  // main
+   curproc->tf->esp = sp;
++  curproc->nice = 4;
+   switchuvm(curproc);
+   freevm(oldpgdir);
+   return 0;
+diff --git a/lapic.c b/lapic.c
+index b22bbd7..8a16ba4 100644
+--- a/lapic.c
++++ b/lapic.c
+@@ -44,7 +44,7 @@
+ volatile uint *lapic;  // Initialized in mp.c
+ 
+ //PAGEBREAK!
+-static void
++void
+ lapicw(int index, int value)
+ {
+   lapic[index] = value;
+diff --git a/proc.c b/proc.c
+index 806b1b1..a4eb727 100644
+--- a/proc.c
++++ b/proc.c
+@@ -6,6 +6,7 @@
+ #include "x86.h"
+ #include "proc.h"
+ #include "spinlock.h"
++#define TICR    (0x0380/4)   // Timer Initial Count
+ 
+ struct {
+   struct spinlock lock;
+@@ -111,6 +112,7 @@ found:
+   p->context = (struct context*)sp;
+   memset(p->context, 0, sizeof *p->context);
+   p->context->eip = (uint)forkret;
++  p->nice = 4;
+ 
+   return p;
+ }
+@@ -199,6 +201,7 @@ fork(void)
+   np->sz = curproc->sz;
+   np->parent = curproc;
+   *np->tf = *curproc->tf;
++  np->nice = curproc->nice;
+ 
+   // Clear %eax so that fork returns 0 in the child.
+   np->tf->eax = 0;
+@@ -340,8 +343,10 @@ scheduler(void)
+       // to release ptable.lock and then reacquire it
+       // before jumping back to us.
+       c->proc = p;
++       
+       switchuvm(p);
+       p->state = RUNNING;
++      lapicw(TICR, 5000000 * (6 - p->nice));
+ 
+       swtch(&(c->scheduler), p->context);
+       switchkvm();
+@@ -532,3 +537,12 @@ procdump(void)
+     cprintf("\n");
+   }
+ }
++
++void set_nice(int niceness)
++{
++    if(niceness < 1 || niceness > 5)
++        return;
++    struct proc* curproc = myproc();
++    curproc->nice = niceness;
++}
++
+diff --git a/proc.h b/proc.h
+index 1647114..26b9605 100644
+--- a/proc.h
++++ b/proc.h
+@@ -49,6 +49,7 @@ struct proc {
+   struct file *ofile[NOFILE];  // Open files
+   struct inode *cwd;           // Current directory
+   char name[16];               // Process name (debugging)
++  int nice;
+ };
+ 
+ // Process memory is laid out contiguously, low addresses first:
+diff --git a/syscall.c b/syscall.c
+index ee85261..ebc1780 100644
+--- a/syscall.c
++++ b/syscall.c
+@@ -103,6 +103,7 @@ extern int sys_unlink(void);
+ extern int sys_wait(void);
+ extern int sys_write(void);
+ extern int sys_uptime(void);
++extern int sys_nice(void);
+ 
+ static int (*syscalls[])(void) = {
+ [SYS_fork]    sys_fork,
+@@ -126,6 +127,7 @@ static int (*syscalls[])(void) = {
+ [SYS_link]    sys_link,
+ [SYS_mkdir]   sys_mkdir,
+ [SYS_close]   sys_close,
++[SYS_nice]    sys_nice,
+ };
+ 
+ void
+diff --git a/syscall.h b/syscall.h
+index bc5f356..fc06372 100644
+--- a/syscall.h
++++ b/syscall.h
+@@ -20,3 +20,4 @@
+ #define SYS_link   19
+ #define SYS_mkdir  20
+ #define SYS_close  21
++#define SYS_nice   22
+diff --git a/sysfile.c b/sysfile.c
+index bfe61b7..c2fdfac 100644
+--- a/sysfile.c
++++ b/sysfile.c
+@@ -442,3 +442,15 @@ sys_pipe(void)
+   fd[1] = fd1;
+   return 0;
+ }
++
++int 
++sys_nice(void)
++{
++    int priority;
++
++    if(argint(0, &priority) < 0)
++        return -1;
++     
++    set_nice(priority);
++    return 0;
++}
+diff --git a/user.h b/user.h
+index 4f99c52..8ffb593 100644
+--- a/user.h
++++ b/user.h
+@@ -23,6 +23,7 @@ int getpid(void);
+ char* sbrk(int);
+ int sleep(int);
+ int uptime(void);
++void nice(int priority);
+ 
+ // ulib.c
+ int stat(const char*, struct stat*);
+diff --git a/usertests.c b/usertests.c
+index a1e97e7..a508b11 100644
+--- a/usertests.c
++++ b/usertests.c
+@@ -11,6 +11,7 @@
+ char buf[8192];
+ char name[3];
+ char *echoargv[] = { "echo", "ALL", "TESTS", "PASSED", 0 };
++char *ten_proc_argv[] = { "ten_proc", 0 };
+ int stdout = 1;
+ 
+ // does chdir() call iput(p->cwd) in a transaction?
+@@ -1745,6 +1746,27 @@ rand()
+   return randstate;
+ }
+ 
++void 
++prioritytest()
++{
++  printf(1, "benchmark testing for priority scheduling\n");
++  for(int i = 1; i < 6; i++)
++  { 
++    nice(i);
++    printf(1, "for nice %d\n", i);
++    int start_time = uptime();
++    
++    if(fork() == 0)
++    {
++      exec("ten_proc", ten_proc_argv);
++      printf(1, "exec failed\n");
++    }
++    wait();
++    int end_time = uptime();
++    printf(1, "time needed to finish ten_proc is %d", end_time - start_time);
++  }
++}
++
+ int
+ main(int argc, char *argv[])
+ {
+@@ -1797,6 +1819,7 @@ main(int argc, char *argv[])
+ 
+   uio();
+ 
++  prioritytest();
+   exectest();
+ 
+   exit();
+diff --git a/usys.S b/usys.S
+index 8bfd8a1..116326e 100644
+--- a/usys.S
++++ b/usys.S
+@@ -29,3 +29,4 @@ SYSCALL(getpid)
+ SYSCALL(sbrk)
+ SYSCALL(sleep)
+ SYSCALL(uptime)
++SYSCALL(nice)

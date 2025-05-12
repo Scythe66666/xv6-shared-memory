@@ -104,3 +104,25 @@ memmove(void *vdst, const void *vsrc, int n)
     *dst++ = *src++;
   return vdst;
 }
+
+void itoa(int value, char *str){
+    char buf[16];
+    int i = 0, j = 0;
+    
+    if(value == 0){
+        str[j++] = '0';
+        str[j] = '\0';
+        return;
+    }
+
+    while(value > 0){
+        buf[i++] = '0' + (value % 10);
+        value /= 10;
+    }
+
+    while(i > 0){
+        str[j++] = buf[--i];
+    }
+
+    str[j] = '\0';
+}
