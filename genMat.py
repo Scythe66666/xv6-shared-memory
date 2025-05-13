@@ -11,7 +11,7 @@ def generate_matrix_file(filename, rows, cols):
             f.write(' '.join(row) + '\n')
 
 if __name__ == "__main__":
-    rows, cols = 100, 100
+    rows, cols = 500, 500
     name = input("enter name of the file")
     generate_matrix_file(name, rows, cols)
     print("File 'matrix.txt' created with a 1000x1000 matrix.")

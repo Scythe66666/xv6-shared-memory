@@ -23,7 +23,7 @@ int read_matrix_from_file(const char *filename, int *matrix, int rows, int cols)
   int idx = 0, val = 0, reading = 0;
 
   /*for (int i = 0; buf[i] != '\0'; i++) {*/
-  /*  printf(0, "value of i is %d\n", i); */
+  /*  printf(0, "value of i is %d\n", i); */ 
   /*  if (buf[i] >= '0' && buf[i] <= '9') {*/
   /*    val = val * 10 + (buf[i] - '0');  // Build the number*/
   /*    reading = 1;*/
@@ -33,6 +33,7 @@ int read_matrix_from_file(const char *filename, int *matrix, int rows, int cols)
   /*    reading = 0;*/
   /*  }*/
   /*}*/
+  
 
     while(1) 
     {
@@ -72,31 +73,39 @@ int main()
     int cols1 = 100;
     int rows2 = 100;
     int cols2 = 100;
-    printf(0, " checkpoint 1\n");
+    printf(1, "checkpoint1 \n");
     
     int shmid1 = shmget(1, rows1 * cols1 * 4, IPC_CREAT | IPC_EXCL | 0666);
-    printf(0, " checkpoint 1\n");
     int shmid2 = shmget(2, rows2 * cols2 * 4, IPC_CREAT | IPC_EXCL | 0666);
-    shmget(3, rows1 * cols1 * 4, IPC_CREAT | IPC_EXCL | 0666);
-    printf(0, " checkpoint 1\n");
+    int shmid3 = shmget(3, rows1 * cols1 * 4, IPC_CREAT | IPC_EXCL | 0666);
+    printf(1, "checkpoint2 \n");
     
     int* Matrix1 = (int*)shmat(shmid1, 0, SHM_EXEC);
     int* Matrix2 = (int*)shmat(shmid2, 0, SHM_EXEC);
-    printf(0, " Matrix 1 is %p", Matrix1);
-    printf(0, " Matrix 2 is %p", Matrix2);
-    printf(0, " checkpoint 2\n");
+    int* Matrix3 = (int*)shmat(shmid3, 0, SHM_EXEC);
+    printf(1, "checkpoint3 \n");
 
     read_matrix_from_file("Matrix1.txt", Matrix1, rows1, cols1);
     read_matrix_from_file("Matrix2.txt", Matrix2, rows2, cols2);
-    printf(0, " checkpoint 3\n");
-
-    // Verify matrix multiplication validity
+    
+    printf(1, "checkpoint1 \n");
+    int time = uptime();
+    
+    for(int i = 0; i < rows1; i++)
+        for(int j = 0; j < cols1; j++)
+            for(int k = 0; k < cols1; k++)
+                Matrix3[i * cols1 + j] += Matrix1[i * cols1 + k]
+                    * Matrix2[k * cols2 + j];
+    
+    int time2 = uptime();
+    printf(1, "time for without shm is %d\n", time2 - time);
+    
+    time = uptime();
     if (cols1 != rows2) {
         printf(1, "Invalid matrix dimensions: %d x %d * %d x %d\n", rows1, cols1, rows2, cols2);
         exit();
     }
     
-    printf(0, " checkpoint 3\n");
     int rows_per_child = rows1 / 4;
     for (int i = 0; i < 4; i++) {
         int start = i * rows_per_child;
@@ -104,7 +113,6 @@ int main()
 
         int pid = fork();
         if (pid == 0) {
-        // Convert args to strings
             char s_row1[8], s_col1[8], s_col2[8], s_start[8], s_end[8];
             itoa(rows1, s_row1);
             itoa(cols1, s_col1);
@@ -120,5 +128,10 @@ int main()
             exit();
         }
     }
+
+    for(int i = 0; i < 4; i++)
+        wait();
+    time2 = uptime();
+    printf(1, "time for with shm is %d\n", time2 - time);
   exit();
 }

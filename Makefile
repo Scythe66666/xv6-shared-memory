@@ -189,7 +189,7 @@ UPROGS=\
 	
 
 fs.img: mkfs README $(UPROGS)
-	./mkfs fs.img README Matrix2.txt Matrix1.txt $(UPROGS)
+	./mkfs fs.img README $(UPROGS)
 
 -include *.d
 
