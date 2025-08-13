@@ -2,22 +2,25 @@
 #include "stat.h"
 #include "user.h"
 #include "fs.h"
-#include "shm.h"
+/*#include "shm.h"*/
 #include "fcntl.h"
 
 
 int main(int argc, char* argv[])
 {
-    printf(1, "checkpoint 0 \n");
-    int num = shmget(1, 20000, 0666);
-    printf(1, "value of num is %d \n", num);
-    char* addr = (char *)shmat(shmget(num, 20000, 0666), 0, SHM_EXEC);
-    printf(1, "checkpoint 1 reached \n");
-    if(argc == 1)
+    int num = shmget(10, 1000, 0666);
+    if(num < 0)
+        num = shmget(10, 1000, IPC_CREAT | IPC_EXCL | 0666);
+
+    /*printf(1, "checkpoint 0 \n");*/
+    /*printf(1, "value of num is %d \n", num);*/
+    char* addr = (char *)shmat(num, 0, SHM_EXEC);
+    /*printf(1, "checkpoint 1 reached \n");*/
+    if(argc != 1)
     {
         int i = 0;
-        int arg_count = 0;
-        while(arg_count < argc && i < 20000)
+        int arg_count = 1;
+        while(arg_count < argc && i < 1999)
         {
             int j = 0;
             char c;
@@ -27,19 +30,14 @@ int main(int argc, char* argv[])
                 i++;
                 j++;
             }
+            addr[i++] = ' ';
             arg_count++;
         }
 
-        if(i == 20000)
-            printf(0, "buffer overflow");
-        addr[19999] = '\0';
+        if(i == 1999)
+            printf(1, "buffer overflow");
+        addr[i] = '\0';
     }
-    else 
-    {
-        char* buff[1024];
-        int n = read(0, buff, 1023);
-        buff[n] = '\0';
-
-    }
+    printf(1, "string is %s", addr);
     exit();
 }

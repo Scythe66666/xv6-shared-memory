@@ -18,6 +18,7 @@ main(void)
   }
   dup(0);  // stdout
   dup(0);  // stderr
+  /*shmget(50, 20000, IPC_CREAT | IPC_EXCL | 0666);*/
 
   for(;;){
     printf(1, "init: starting sh\n");

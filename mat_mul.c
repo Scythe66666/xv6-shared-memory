@@ -69,10 +69,10 @@ int read_matrix_from_file(const char *filename, int *matrix, int rows, int cols)
 
 int main()
 {
-    int rows1 = 100;
-    int cols1 = 100;
-    int rows2 = 100;
-    int cols2 = 100;
+    int rows1 = 1000;
+    int cols1 = 1000;
+    int rows2 = 1000;
+    int cols2 = 1000;
     printf(1, "checkpoint1 \n");
     
     int shmid1 = shmget(1, rows1 * cols1 * 4, IPC_CREAT | IPC_EXCL | 0666);
@@ -85,9 +85,16 @@ int main()
     int* Matrix3 = (int*)shmat(shmid3, 0, SHM_EXEC);
     printf(1, "checkpoint3 \n");
 
-    read_matrix_from_file("Matrix1.txt", Matrix1, rows1, cols1);
-    read_matrix_from_file("Matrix2.txt", Matrix2, rows2, cols2);
-    
+    /*read_matrix_from_file("Matrix1.txt", Matrix1, rows1, cols1);*/
+    /*read_matrix_from_file("Matrix2.txt", Matrix2, rows2, cols2);*/
+    for(int i = 0; i < rows1; i++)
+        for(int j = 0; j < cols1; j++)
+        {
+            Matrix1[i * cols1 + j] = i + j;
+            Matrix2[i * cols1 + j] = i * j;
+        }
+
+
     printf(1, "checkpoint1 \n");
     int time = uptime();
     
@@ -133,5 +140,7 @@ int main()
         wait();
     time2 = uptime();
     printf(1, "time for with shm is %d\n", time2 - time);
+    shmdt((char*)Matrix1); 
+    shmdt((char*)Matrix2); 
   exit();
 }
